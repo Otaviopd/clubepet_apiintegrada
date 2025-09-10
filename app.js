@@ -2854,18 +2854,24 @@ function imprimirFichaPet(petId) {
         <p style="color: #666; margin: 5px 0 0 0; font-size: 14px;">Gerado em ${hoje}</p>
       </div>
       
-      ${pet.imagens && pet.imagens.length > 0 ? `
-      <div style="background: #f0f8ff; border-left: 4px solid #4a6baf; padding: 15px; margin-bottom: 20px; text-align: center;">
-        <img src="${pet.imagens[0].src}" alt="Foto do ${pet.nome}" style="max-width: 150px; height: auto; border: 1px solid #4a6baf; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      </div>
-      ` : ''}
       
       <div style="background: #f9f9f9; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <h3 style="color: #4a6baf; margin: 0 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Dados do Pet</h3>
+        
+        <!-- Nome com foto ao lado -->
+        <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 10px; background: #fff; border-radius: 8px; border: 1px solid #e0e0e0;">
+          ${pet.imagens && pet.imagens.length > 0 ? `
+          <img src="${pet.imagens[0].src}" alt="Foto do ${pet.nome}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 3px solid #4a6baf; margin-right: 15px; box-shadow: 0 2px 8px rgba(74, 107, 175, 0.3);">
+          ` : `
+          <div style="width: 80px; height: 80px; background: #f0f8ff; border-radius: 50%; border: 3px solid #4a6baf; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🐾</div>
+          `}
+          <div>
+            <h2 style="color: #4a6baf; margin: 0; font-size: 28px; font-weight: bold;">${pet.nome || '—'}</h2>
+            <p style="color: #666; margin: 5px 0 0 0; font-size: 16px;">${pet.especie || '—'} • ${pet.raca || '—'}</p>
+          </div>
+        </div>
+        
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-          <div><strong>Nome:</strong> ${pet.nome || '—'}</div>
-          <div><strong>Espécie:</strong> ${pet.especie || '—'}</div>
-          <div><strong>Raça:</strong> ${pet.raca || '—'}</div>
           <div><strong>Tamanho:</strong> ${pet.tamanho || '—'}</div>
           <div><strong>Idade:</strong> ${pet.idade || '—'}</div>
           <div><strong>Peso:</strong> ${pet.peso ? pet.peso + ' kg' : '—'}</div>
