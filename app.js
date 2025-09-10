@@ -58,7 +58,46 @@ function saveState(){
     })); 
   }catch(e){ console.error(e); }
 }
-function loadState(){
+// Função para carregar dados da API (substitui localStorage)
+async function carregarTodosDados() {
+  try {
+    console.log('🔄 Carregando todos os dados da API...');
+    
+    // Carregar dados em paralelo
+    await Promise.all([
+      carregarClientes(),
+      carregarPets(),
+      carregarHospedagens(),
+      carregarCreches(),
+      carregarMensagens(),
+      carregarAvaliacoes(),
+      carregarInadimplencias(),
+      carregarConfiguracoes(),
+      carregarConfiguracoesComunicacao(),
+      carregarPlanosCustomizados()
+    ]);
+    
+    console.log('✅ Todos os dados carregados da API');
+    
+    // Atualizar interfaces
+    atualizarTabelaClientes();
+    atualizarTabelaPets();
+    atualizarTabelaHospedagem();
+    atualizarTabelaCreche();
+    atualizarSelectClientes();
+    atualizarSelectPets('hospedagemPet');
+    atualizarSelectPets('crechePet');
+    atualizarSelectPets('galeriaPetSelect');
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar dados da API:', error);
+    // Fallback para localStorage se API falhar
+    loadStateFromLocalStorage();
+  }
+}
+
+// Função de fallback para localStorage
+function loadStateFromLocalStorage(){
   try{
     const raw = localStorage.getItem(LS_KEY); if(!raw) return;
     const s = JSON.parse(raw);
@@ -73,6 +112,34 @@ function loadState(){
   if (!Array.isArray(precos.planosCustom)) precos.planosCustom = [];
   if (!precos.custos) precos.custos = { hospedagem: { pequeno:25, medio:35, grande:45, gigante:60 }, creche: { meio:20, integral:35 }, extras: { banho:10, consulta:30, transporte:8, adaptacao:5, treinamento:10 } };
 }
+
+// Manter compatibilidade
+function loadState() {
+  carregarTodosDados();
+}
+
+// Função de inicialização do sistema
+async function inicializarSistema() {
+  console.log('🚀 Inicializando sistema ClubePet...');
+  
+  try {
+    // Carregar todos os dados da API
+    await carregarTodosDados();
+    
+    // Preencher configurações nos formulários
+    preencherConfiguracoes();
+    preencherConfigComunicacao();
+    
+    console.log('✅ Sistema inicializado com sucesso!');
+  } catch (error) {
+    console.error('❌ Erro na inicialização:', error);
+    // Fallback para localStorage
+    loadStateFromLocalStorage();
+  }
+}
+
+// Inicializar quando a página carregar
+document.addEventListener('DOMContentLoaded', inicializarSistema);
 
 // ===== Utilidades Planos Custom =====
 function totalDiasPlanoCustom(pl){ return (Number(pl.meses)||0) * (Number(pl.diasMes)||0); }
@@ -130,6 +197,8 @@ function buscarPets(){
 }
 
 // ===== API Functions =====
+
+// ===== CLIENTES API =====
 async function carregarClientes() {
   try {
     const response = await fetch(`${API_BASE_URL}/clientes`);
@@ -160,11 +229,53 @@ async function salvarClienteAPI(clienteData) {
   }
 }
 
+async function atualizarClienteAPI(id, clienteData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(clienteData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao atualizar cliente');
+  } catch (error) {
+    console.error('Erro ao atualizar cliente:', error);
+    throw error;
+  }
+}
+
+async function excluirClienteAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir cliente');
+  } catch (error) {
+    console.error('Erro ao excluir cliente:', error);
+    throw error;
+  }
+}
+
+// ===== PETS API =====
 async function carregarPets() {
   try {
     const response = await fetch(`${API_BASE_URL}/pets`);
     if (response.ok) {
-      pets = await response.json();
+      const petsAPI = await response.json();
+      // Converter formato da API para formato local
+      pets = petsAPI.map(pet => ({
+        ...pet,
+        clienteNome: pet.cliente?.nome || '—',
+        tamanho: pet.tamanho.charAt(0) + pet.tamanho.slice(1).toLowerCase(),
+        temperamento: pet.temperamento.charAt(0) + pet.temperamento.slice(1).toLowerCase(),
+        imagens: pet.imagens || [],
+        dataCadastro: new Date(pet.dataCadastro).toLocaleDateString('pt-BR')
+      }));
       atualizarTabelaPets();
       atualizarSelectPets('hospedagemPet');
       atualizarSelectPets('crechePet');
@@ -192,11 +303,85 @@ async function salvarPetAPI(petData) {
   }
 }
 
+async function atualizarPetAPI(id, petData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pets/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(petData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao atualizar pet');
+  } catch (error) {
+    console.error('Erro ao atualizar pet:', error);
+    throw error;
+  }
+}
+
+async function excluirPetAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pets/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir pet');
+  } catch (error) {
+    console.error('Erro ao excluir pet:', error);
+    throw error;
+  }
+}
+
+async function salvarImagemPetAPI(petId, imagemData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pets/${petId}/imagens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(imagemData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar imagem');
+  } catch (error) {
+    console.error('Erro ao salvar imagem:', error);
+    throw error;
+  }
+}
+
+async function excluirImagemPetAPI(imagemId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pets/imagens/${imagemId}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir imagem');
+  } catch (error) {
+    console.error('Erro ao excluir imagem:', error);
+    throw error;
+  }
+}
+
+// ===== HOSPEDAGENS API =====
 async function carregarHospedagens() {
   try {
     const response = await fetch(`${API_BASE_URL}/hospedagens`);
     if (response.ok) {
-      hospedagens = await response.json();
+      const hospedagensAPI = await response.json();
+      hospedagens = hospedagensAPI.map(h => ({
+        ...h,
+        clienteNome: h.pet?.cliente?.nome || h.clienteNome,
+        petNome: h.pet?.nome || h.petNome,
+        checkin: h.checkin.split('T')[0],
+        checkout: h.checkout.split('T')[0],
+        status: h.status.charAt(0) + h.status.slice(1).toLowerCase(),
+        dataCriacao: new Date(h.dataCriacao).toLocaleDateString('pt-BR')
+      }));
       atualizarTabelaHospedagem();
     }
   } catch (error) {
@@ -221,11 +406,52 @@ async function salvarHospedagemAPI(hospedagemData) {
   }
 }
 
+async function atualizarHospedagemAPI(id, hospedagemData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/hospedagens/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(hospedagemData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao atualizar hospedagem');
+  } catch (error) {
+    console.error('Erro ao atualizar hospedagem:', error);
+    throw error;
+  }
+}
+
+async function excluirHospedagemAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/hospedagens/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir hospedagem');
+  } catch (error) {
+    console.error('Erro ao excluir hospedagem:', error);
+    throw error;
+  }
+}
+
+// ===== CRECHES API =====
 async function carregarCreches() {
   try {
     const response = await fetch(`${API_BASE_URL}/creches`);
     if (response.ok) {
-      creches = await response.json();
+      const crechesAPI = await response.json();
+      creches = crechesAPI.map(c => ({
+        ...c,
+        clienteNome: c.pet?.cliente?.nome || c.clienteNome,
+        petNome: c.pet?.nome || c.petNome,
+        data: c.data.split('T')[0],
+        status: c.status.charAt(0) + c.status.slice(1).toLowerCase(),
+        dataCriacao: new Date(c.dataCriacao).toLocaleDateString('pt-BR')
+      }));
       atualizarTabelaCreche();
     }
   } catch (error) {
@@ -250,42 +476,397 @@ async function salvarCrecheAPI(crecheData) {
   }
 }
 
+async function atualizarCrecheAPI(id, crecheData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creches/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(crecheData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao atualizar creche');
+  } catch (error) {
+    console.error('Erro ao atualizar creche:', error);
+    throw error;
+  }
+}
+
+async function excluirCrecheAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creches/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir creche');
+  } catch (error) {
+    console.error('Erro ao excluir creche:', error);
+    throw error;
+  }
+}
+
+// ===== MENSAGENS API =====
+async function carregarMensagens() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mensagens`);
+    if (response.ok) {
+      const mensagensAPI = await response.json();
+      mensagens = mensagensAPI.map(m => ({
+        ...m,
+        clienteNome: m.cliente?.nome || m.clienteNome,
+        petNome: m.pet?.nome || m.petNome,
+        dataHora: new Date(m.dataHora).toLocaleString('pt-BR')
+      }));
+      atualizarTabelaMensagens();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar mensagens:', error);
+  }
+}
+
+async function salvarMensagemAPI(mensagemData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mensagens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mensagemData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar mensagem');
+  } catch (error) {
+    console.error('Erro ao salvar mensagem:', error);
+    throw error;
+  }
+}
+
+async function atualizarMensagemAPI(id, mensagemData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mensagens/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mensagemData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao atualizar mensagem');
+  } catch (error) {
+    console.error('Erro ao atualizar mensagem:', error);
+    throw error;
+  }
+}
+
+async function excluirMensagemAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/mensagens/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir mensagem');
+  } catch (error) {
+    console.error('Erro ao excluir mensagem:', error);
+    throw error;
+  }
+}
+
+// ===== AVALIAÇÕES API =====
+async function carregarAvaliacoes() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/avaliacoes`);
+    if (response.ok) {
+      const avaliacoesAPI = await response.json();
+      avaliacoes = avaliacoesAPI.map(a => ({
+        ...a,
+        clienteNome: a.cliente?.nome || a.clienteNome,
+        petNome: a.pet?.nome || a.petNome,
+        data: new Date(a.data).toLocaleDateString('pt-BR')
+      }));
+      atualizarTabelaAvaliacoes();
+      atualizarResumoSatisfacao();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar avaliações:', error);
+  }
+}
+
+async function salvarAvaliacaoAPI(avaliacaoData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/avaliacoes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(avaliacaoData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar avaliação');
+  } catch (error) {
+    console.error('Erro ao salvar avaliação:', error);
+    throw error;
+  }
+}
+
+async function atualizarAvaliacaoAPI(id, avaliacaoData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/avaliacoes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(avaliacaoData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao atualizar avaliação');
+  } catch (error) {
+    console.error('Erro ao atualizar avaliação:', error);
+    throw error;
+  }
+}
+
+async function excluirAvaliacaoAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/avaliacoes/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir avaliação');
+  } catch (error) {
+    console.error('Erro ao excluir avaliação:', error);
+    throw error;
+  }
+}
+
+// ===== INADIMPLÊNCIAS API =====
+async function carregarInadimplencias() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/inadimplencias`);
+    if (response.ok) {
+      const inadimplenciasAPI = await response.json();
+      inadimplencias = inadimplenciasAPI.map(i => ({
+        ...i,
+        clienteNome: i.cliente?.nome || i.clienteNome,
+        vencimento: new Date(i.vencimento).toLocaleDateString('pt-BR'),
+        dataPagamento: i.dataPagamento ? new Date(i.dataPagamento).toLocaleDateString('pt-BR') : null,
+        dataCriacao: new Date(i.dataCriacao).toLocaleDateString('pt-BR')
+      }));
+      atualizarTabelaInadimplencia();
+      atualizarResumoFinanceiro();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar inadimplências:', error);
+  }
+}
+
+async function salvarInadimplenciaAPI(inadimplenciaData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/inadimplencias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inadimplenciaData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar inadimplência');
+  } catch (error) {
+    console.error('Erro ao salvar inadimplência:', error);
+    throw error;
+  }
+}
+
+async function atualizarInadimplenciaAPI(id, inadimplenciaData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/inadimplencias/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inadimplenciaData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao atualizar inadimplência');
+  } catch (error) {
+    console.error('Erro ao atualizar inadimplência:', error);
+    throw error;
+  }
+}
+
+async function excluirInadimplenciaAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/inadimplencias/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir inadimplência');
+  } catch (error) {
+    console.error('Erro ao excluir inadimplência:', error);
+    throw error;
+  }
+}
+
+// ===== CONFIGURAÇÕES API =====
 async function carregarConfiguracoes() {
   try {
-    const response = await fetch(`${API_BASE_URL}/configuracoes-comunicacao`);
+    const response = await fetch(`${API_BASE_URL}/configuracoes`);
     if (response.ok) {
-      const configs = await response.json();
-      if (configs.length > 0) {
-        const config = configs[0];
-        configComunicacao = {
-          whatsappToken: config.whatsappToken || '',
-          whatsappNumero: config.whatsappNumero || '',
-          smsApiKey: config.smsApiKey || '',
-          msgCheckin: config.msgCheckin || configComunicacao.msgCheckin,
-          msgCheckout: config.msgCheckout || configComunicacao.msgCheckout,
-          msgLembrete: config.msgLembrete || configComunicacao.msgLembrete,
-          msgSatisfacao: config.msgSatisfacao || configComunicacao.msgSatisfacao
-        };
-      }
+      const config = await response.json();
+      // Atualizar preços locais com dados da API
+      precos.hospedagem.pequeno = config.precoHospedagemPequeno;
+      precos.hospedagem.medio = config.precoHospedagemMedio;
+      precos.hospedagem.grande = config.precoHospedagemGrande;
+      precos.hospedagem.gigante = config.precoHospedagemGigante;
+      precos.creche.meio.pequeno = config.precoCrecheMeioPequeno;
+      precos.creche.meio.medio = config.precoCrecheMeioMedio;
+      precos.creche.meio.grande = config.precoCrecheMeioGrande;
+      precos.creche.meio.gigante = config.precoCrecheMeioGigante;
+      precos.creche.integral.pequeno = config.precoCrecheIntegralPequeno;
+      precos.creche.integral.medio = config.precoCrecheIntegralMedio;
+      precos.creche.integral.grande = config.precoCrecheIntegralGrande;
+      precos.creche.integral.gigante = config.precoCrecheIntegralGigante;
+      precos.extras.banho = config.precoBanho;
+      precos.extras.consulta = config.precoConsulta;
+      precos.extras.transporte = config.precoTransporte;
+      precos.extras.adaptacao = config.precoAdaptacao;
+      precos.extras.treinamento = config.precoTreinamento;
     }
   } catch (error) {
     console.error('Erro ao carregar configurações:', error);
   }
 }
 
-async function salvarConfiguracaoAPI(configData) {
+async function salvarConfiguracoes() {
   try {
+    const configData = {
+      precoHospedagemPequeno: parseFloat(document.getElementById('precoHospedagemPequeno').value),
+      precoHospedagemMedio: parseFloat(document.getElementById('precoHospedagemMedio').value),
+      precoHospedagemGrande: parseFloat(document.getElementById('precoHospedagemGrande').value),
+      precoHospedagemGigante: parseFloat(document.getElementById('precoHospedagemGigante').value),
+      precoCrecheMeioPequeno: parseFloat(document.getElementById('precoCrecheMeioPequeno').value),
+      precoCrecheMeioMedio: parseFloat(document.getElementById('precoCrecheMeioMedio').value),
+      precoCrecheMeioGrande: parseFloat(document.getElementById('precoCrecheMeioGrande').value),
+      precoCrecheMeioGigante: parseFloat(document.getElementById('precoCrecheMeioGigante').value),
+      precoCrecheIntegralPequeno: parseFloat(document.getElementById('precoCrecheIntegralPequeno').value),
+      precoCrecheIntegralMedio: parseFloat(document.getElementById('precoCrecheIntegralMedio').value),
+      precoCrecheIntegralGrande: parseFloat(document.getElementById('precoCrecheIntegralGrande').value),
+      precoCrecheIntegralGigante: parseFloat(document.getElementById('precoCrecheIntegralGigante').value)
+    };
+
+    const response = await fetch(`${API_BASE_URL}/configuracoes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(configData)
+    });
+
+    if (response.ok) {
+      await carregarConfiguracoes();
+      alert('Configurações salvas com sucesso!');
+    } else {
+      throw new Error('Erro ao salvar configurações');
+    }
+  } catch (error) {
+    console.error('Erro ao salvar configurações:', error);
+    alert('Erro ao salvar configurações. Tente novamente.');
+  }
+}
+
+async function carregarConfiguracoesComunicacao() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/configuracoes-comunicacao`);
+    if (response.ok) {
+      const config = await response.json();
+      configComunicacao = config;
+      preencherConfigComunicacao();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar configurações de comunicação:', error);
+  }
+}
+
+async function salvarConfiguracoesComunicacao() {
+  try {
+    const configData = {
+      whatsappToken: document.getElementById('whatsappToken').value,
+      whatsappNumero: document.getElementById('whatsappNumero').value,
+      smsApiKey: document.getElementById('smsApiKey').value,
+      msgCheckin: document.getElementById('msgCheckin').value,
+      msgCheckout: document.getElementById('msgCheckout').value,
+      msgLembrete: document.getElementById('msgLembrete').value,
+      msgSatisfacao: document.getElementById('msgSatisfacao').value
+    };
+
     const response = await fetch(`${API_BASE_URL}/configuracoes-comunicacao`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(configData)
     });
+
+    if (response.ok) {
+      configComunicacao = await response.json();
+      alert('Configurações de comunicação salvas com sucesso!');
+    } else {
+      throw new Error('Erro ao salvar configurações');
+    }
+  } catch (error) {
+    console.error('Erro ao salvar configurações de comunicação:', error);
+    alert('Erro ao salvar configurações. Tente novamente.');
+  }
+}
+
+// ===== PLANOS CUSTOMIZADOS API =====
+async function carregarPlanosCustomizados() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/planos-customizados`);
+    if (response.ok) {
+      const planosAPI = await response.json();
+      precos.planosCustom = planosAPI;
+      renderTabelaPlanosCustom();
+      popularPlanosEmHospedagem();
+      popularPlanosEmCreche();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar planos customizados:', error);
+  }
+}
+
+async function salvarPlanoCustomizadoAPI(planoData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/planos-customizados`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(planoData)
+    });
     if (response.ok) {
       return await response.json();
     }
-    throw new Error('Erro ao salvar configuração');
+    throw new Error('Erro ao salvar plano');
   } catch (error) {
-    console.error('Erro ao salvar configuração:', error);
+    console.error('Erro ao salvar plano:', error);
+    throw error;
+  }
+}
+
+async function excluirPlanoCustomizadoAPI(id) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/planos-customizados/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      return true;
+    }
+    throw new Error('Erro ao excluir plano');
+  } catch (error) {
+    console.error('Erro ao excluir plano:', error);
     throw error;
   }
 }
@@ -302,16 +883,12 @@ async function adicionarCliente(){
   
   try {
     const clienteData = { nome, email, telefone, cpf, endereco, emergencia };
-    console.log('Enviando dados para API:', clienteData);
     const novoCliente = await salvarClienteAPI(clienteData);
-    console.log('Cliente salvo com sucesso:', novoCliente);
     await carregarClientes(); // Recarrega a lista
     limparFormularioCliente(); 
-    alert('Cliente cadastrado com sucesso!');
-    saveState();
+    alert('Cliente cadastrado com sucesso!'); 
   } catch (error) {
-    console.error('Erro detalhado:', error);
-    alert('Erro ao cadastrar cliente: ' + error.message);
+    alert('Erro ao cadastrar cliente. Tente novamente.');
   }
 }
 
@@ -333,10 +910,7 @@ function editarCliente(id){
   btn.onclick = () => salvarEdicaoCliente(id);
 }
 
-function salvarEdicaoCliente(id){
-  const cliente = clientes.find(c => c.id === id);
-  if(!cliente) return;
-  
+async function salvarEdicaoCliente(id){
   const nome = document.getElementById('clienteNome').value.trim();
   const email = document.getElementById('clienteEmail').value.trim();
   const telefone = document.getElementById('clienteTelefone').value.trim();
@@ -346,25 +920,21 @@ function salvarEdicaoCliente(id){
   
   if(!nome || !telefone){ alert('Nome e telefone são obrigatórios!'); return; }
   
-  // Atualizar dados
-  cliente.nome = nome;
-  cliente.email = email;
-  cliente.telefone = telefone;
-  cliente.cpf = cpf;
-  cliente.endereco = endereco;
-  cliente.emergencia = emergencia;
-  
-  atualizarTabelaClientes();
-  atualizarSelectClientes();
-  limparFormularioCliente();
-  
-  // Restaurar botão
-  const btn = document.querySelector('button[onclick*="salvarEdicaoCliente"]');
-  btn.textContent = '➕ Adicionar Cliente';
-  btn.onclick = adicionarCliente;
-  
-  alert('Cliente atualizado com sucesso!');
-  saveState();
+  try {
+    const clienteData = { nome, email, telefone, cpf, endereco, emergencia };
+    await atualizarClienteAPI(id, clienteData);
+    await carregarClientes();
+    limparFormularioCliente();
+    
+    // Restaurar botão
+    const btn = document.querySelector('button[onclick*="salvarEdicaoCliente"]');
+    btn.textContent = '➕ Adicionar Cliente';
+    btn.onclick = adicionarCliente;
+    
+    alert('Cliente atualizado com sucesso!');
+  } catch (error) {
+    alert('Erro ao atualizar cliente. Tente novamente.');
+  }
 }
 
 function limparFormularioCliente(){ 
@@ -388,23 +958,11 @@ function atualizarTabelaClientes(){
 
 async function excluirCliente(id){ 
   if(!confirm('Excluir este cliente?')) return; 
-  
   try {
-    // Excluir da API
-    const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
-      method: 'DELETE'
-    });
-    
-    if (response.ok) {
-      // Recarregar lista da API
-      await carregarClientes();
-      alert('Cliente excluído com sucesso!');
-    } else {
-      throw new Error('Erro ao excluir cliente');
-    }
+    await excluirClienteAPI(id);
+    await carregarClientes();
   } catch (error) {
-    console.error('Erro ao excluir cliente:', error);
-    alert('Erro ao excluir cliente: ' + error.message);
+    alert('Erro ao excluir cliente. Tente novamente.');
   }
 }
 
@@ -436,24 +994,36 @@ async function adicionarPet(){
   try {
     const petData = {
       clienteId: parseInt(clienteId),
-      nome,
-      especie,
-      raca,
-      tamanho,
+      nome, especie, raca, tamanho, 
       peso: peso ? parseFloat(peso) : null,
-      idade,
-      temperamento,
-      castrado,
-      medicamentos,
-      cartaoVacinaNumero: cartao,
-      observacoes
+      idade, temperamento, castrado, medicamentos,
+      cartaoVacinaNumero: cartao, observacoes
     };
     
     const novoPet = await salvarPetAPI(petData);
-    await carregarPets(); // Recarrega a lista
-    limparFormularioPet();
-    alert('Pet cadastrado com sucesso!');
-    saveState();
+    
+    // Salvar foto do cartão de vacina se houver
+    const fileInput = document.getElementById('petCartaoVacinaFoto');
+    if (fileInput.files[0]) {
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          await salvarImagemPetAPI(novoPet.id, {
+            nome: file.name,
+            src: e.target.result,
+            tipo: 'cartao_vacina'
+          });
+        } catch (error) {
+          console.error('Erro ao salvar foto do cartão:', error);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    await carregarPets();
+    limparFormularioPet(); 
+    alert('Pet cadastrado com sucesso!'); 
   } catch (error) {
     alert('Erro ao cadastrar pet. Tente novamente.');
   }
@@ -483,10 +1053,7 @@ function editarPet(id){
   btn.onclick = () => salvarEdicaoPet(id);
 }
 
-function salvarEdicaoPet(id){
-  const pet = pets.find(p => p.id === id);
-  if(!pet) return;
-  
+async function salvarEdicaoPet(id){
   const clienteId = document.getElementById('petCliente').value;
   const nome = document.getElementById('petNome').value.trim();
   const especie = document.getElementById('petEspecie').value;
@@ -503,31 +1070,23 @@ function salvarEdicaoPet(id){
   if(!clienteId || !nome || !especie || !raca || !tamanho || !temperamento){ alert('Campos obrigatórios: Cliente, Nome, Espécie, Raça, Tamanho e Temperamento.'); return; }
   if(!cartao){ alert('Informe o Nº do Cartão de Vacinas do pet.'); return; }
 
-  const cliente = clientes.find(c=>c.id==clienteId);
-  
-  // Atualizar dados
-  pet.clienteId = parseInt(clienteId);
-  pet.clienteNome = cliente ? cliente.nome : '—';
-  pet.nome = nome;
-  pet.especie = especie;
-  pet.raca = raca;
-  pet.tamanho = tamanho;
-  pet.peso = peso ? parseFloat(peso) : null;
-  pet.idade = idade;
-  pet.temperamento = temperamento;
-  pet.castrado = castrado;
-  pet.medicamentos = medicamentos;
-  pet.cartaoVacinaNumero = cartao;
-  pet.observacoes = observacoes;
-  
-  atualizarTabelaPets();
-  atualizarSelectPets('hospedagemPet');
-  atualizarSelectPets('crechePet');
-  preencherPetsEmGaleria();
-  limparFormularioPet();
-  
-  alert('Pet atualizado com sucesso!');
-  saveState();
+  try {
+    const petData = {
+      clienteId: parseInt(clienteId),
+      nome, especie, raca, tamanho,
+      peso: peso ? parseFloat(peso) : null,
+      idade, temperamento, castrado, medicamentos,
+      cartaoVacinaNumero: cartao, observacoes
+    };
+    
+    await atualizarPetAPI(id, petData);
+    await carregarPets();
+    limparFormularioPet();
+    
+    alert('Pet atualizado com sucesso!');
+  } catch (error) {
+    alert('Erro ao atualizar pet. Tente novamente.');
+  }
 }
 
 function limparFormularioPet(){ 
@@ -563,7 +1122,15 @@ function atualizarTabelaPets(){
   });
 }
 
-function excluirPet(id){ if(!confirm('Excluir este pet?')) return; pets = pets.filter(p=>p.id!==id); atualizarTabelaPets(); atualizarSelectPets('hospedagemPet'); atualizarSelectPets('crechePet'); preencherPetsEmGaleria(); renderGaleria(); saveState(); }
+async function excluirPet(id){ 
+  if(!confirm('Excluir este pet?')) return; 
+  try {
+    await excluirPetAPI(id);
+    await carregarPets();
+  } catch (error) {
+    alert('Erro ao excluir pet. Tente novamente.');
+  }
+}
 
 function atualizarSelectPets(selectId){
   const select = document.getElementById(selectId); if(!select) return;
@@ -583,29 +1150,54 @@ function abrirGaleria(petId){
   }
 }
 
-function uploadImagensPet(){
-  const sel = document.getElementById('galeriaPetSelect'); const files = document.getElementById('petImagensInput').files;
+async function uploadImagensPet(){
+  const sel = document.getElementById('galeriaPetSelect'); 
+  const files = document.getElementById('petImagensInput').files;
   if(!sel || !sel.value){ alert('Selecione um pet para vincular as imagens.'); return; }
   if(!files || !files.length){ alert('Selecione uma ou mais imagens.'); return; }
-  const pet = pets.find(p=>String(p.id)===String(sel.value)); if(!pet) return;
+  
+  const petId = sel.value;
   const toBase64 = f=> new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); });
-  (async()=>{
-    for(const f of files){ try{ const b64 = await toBase64(f); pet.imagens.push({src:b64, nome:f.name, ts:Date.now()}); }catch(e){ console.error(e);} }
-    saveState(); renderGaleria(); document.getElementById('petImagensInput').value='';
-  })();
+  
+  try {
+    for(const f of files){ 
+      const b64 = await toBase64(f); 
+      await salvarImagemPetAPI(petId, {
+        nome: f.name,
+        src: b64,
+        tipo: 'galeria'
+      });
+    }
+    await carregarPets();
+    renderGaleria(); 
+    document.getElementById('petImagensInput').value='';
+    alert('Imagens adicionadas com sucesso!');
+  } catch(e) { 
+    console.error(e);
+    alert('Erro ao salvar imagens. Tente novamente.');
+  }
 }
 
 function renderGaleria(){
   const sel = document.getElementById('galeriaPetSelect'); const wrap = document.getElementById('galeriaPet'); if(!wrap) return; wrap.innerHTML='';
   const pet = pets.find(p=>String(p.id)===String(sel?.value||'')); if(!pet || !Array.isArray(pet.imagens)) return;
-  pet.imagens.forEach((img,idx)=>{
+  pet.imagens.forEach((img)=>{
     const div = document.createElement('div'); div.className='thumb';
-    div.innerHTML = `<img src="${img.src}" alt="${pet.nome} - ${img.nome}"><button onclick="excluirImagemPet(${pet.id},${idx})">✕</button>`;
+    div.innerHTML = `<img src="${img.src}" alt="${pet.nome} - ${img.nome}"><button onclick="excluirImagemPet(${pet.id},${img.id})">✕</button>`;
     wrap.appendChild(div);
   });
 }
 
-function excluirImagemPet(petId, idx){ const p = pets.find(x=>x.id===petId); if(!p) return; p.imagens.splice(idx,1); saveState(); renderGaleria(); }
+async function excluirImagemPet(petId, imagemId){ 
+  if(!confirm('Excluir esta imagem?')) return;
+  try {
+    await excluirImagemPetAPI(imagemId);
+    await carregarPets();
+    renderGaleria();
+  } catch (error) {
+    alert('Erro ao excluir imagem. Tente novamente.');
+  }
+}
 
 // ===== Gerenciamento da Foto do Cartão de Vacina =====
 function processarCartaoVacina() {
@@ -810,28 +1402,20 @@ async function adicionarHospedagem(){
   const planoNome = calc.planoInfo ? calc.planoInfo.nome : 'Avulso';
   
   try {
-    const hospedagemData = {
-      petId: parseInt(petId),
-      checkin,
-      checkout,
-      dias: calc.dias,
-      servicos: servicos.join(', '),
-      subtotal: calc.subtotal,
-      descontoPercent: calc.descontoPercent,
-      total: calc.total,
-      plano: planoNome,
-      status: 'Ativo'
+    const hospedagemData = { 
+      petId: parseInt(petId), petNome: pet.nome, clienteNome: cliente.nome,
+      checkin, checkout, dias: calc.dias, servicos: servicos.join(', '),
+      subtotal: calc.subtotal, descontoPercent: calc.descontoPercent, total: calc.total, plano: planoNome
     };
     
     const novaHospedagem = await salvarHospedagemAPI(hospedagemData);
-    await carregarHospedagens(); // Recarrega a lista
+    await carregarHospedagens(); 
     limparFormularioHospedagem();
     
     // Enviar confirmação automática
     enviarMensagemCheckin(cliente, pet, checkin, 'Hospedagem');
     
     alert(`Hospedagem confirmada! Total: R$ ${novaHospedagem.total.toFixed(2).replace('.',',')}`);
-    saveState();
   } catch (error) {
     alert('Erro ao confirmar hospedagem. Tente novamente.');
   }
@@ -865,7 +1449,15 @@ function atualizarTabelaHospedagem(){
 }
 
 // Função checkout já foi redefinida acima
-function excluirHospedagem(id){ if(!confirm('Excluir esta hospedagem?')) return; hospedagens=hospedagens.filter(h=>h.id!==id); atualizarTabelaHospedagem(); saveState(); }
+async function excluirHospedagem(id){ 
+  if(!confirm('Excluir esta hospedagem?')) return; 
+  try {
+    await excluirHospedagemAPI(id);
+    await carregarHospedagens();
+  } catch (error) {
+    alert('Erro ao excluir hospedagem. Tente novamente.');
+  }
+}
 
 // ===== Creche =====
 function popularPlanosEmCreche(){
@@ -928,7 +1520,7 @@ async function adicionarCreche(){
   const petId = document.getElementById('crechePet').value;
   const data = document.getElementById('crecheData').value;
   const periodo = document.getElementById('crechePeriodo').value;
-  const plano = document.getElementById('crechePlano').value;
+  const planoId = document.getElementById('crechePlano').value;
   const entrada = document.getElementById('crecheEntrada').value;
   const saida = document.getElementById('crecheSaida').value;
 
@@ -957,28 +1549,24 @@ async function adicionarCreche(){
   try {
     const crecheData = {
       petId: parseInt(petId),
-      data,
-      periodo,
-      plano: planoNome,
-      entrada,
-      saida,
+      petNome: pet.nome,
+      clienteNome: cliente.nome,
+      data, periodo, plano: planoNome, entrada, saida,
       dias: calc.multiplicador,
       atividades: atividades.join(', '),
       subtotal: calc.subtotal,
       descontoPercent: calc.descontoPercent,
-      total: calc.total,
-      status: 'Agendado'
+      total: calc.total
     };
     
     const novaCreche = await salvarCrecheAPI(crecheData);
-    await carregarCreches(); // Recarrega a lista
+    await carregarCreches();
     limparFormularioCreche();
     
     // Enviar confirmação automática
     enviarMensagemCheckin(cliente, pet, data, 'Creche');
     
     alert(`Creche agendada! Total: R$ ${novaCreche.total.toFixed(2).replace('.',',')}`);
-    saveState();
   } catch (error) {
     alert('Erro ao agendar creche. Tente novamente.');
   }
@@ -1012,8 +1600,25 @@ function atualizarTabelaCreche(){
   });
 }
 
-function finalizarCreche(id){ const c=creches.find(x=>x.id===id); if(c){ c.status='Finalizado'; atualizarTabelaCreche(); alert('Sessão de creche finalizada!'); saveState(); } }
-function excluirCreche(id){ if(!confirm('Excluir esta sessão de creche?')) return; creches=creches.filter(c=>c.id!==id); atualizarTabelaCreche(); saveState(); }
+async function finalizarCreche(id){ 
+  try {
+    await atualizarCrecheAPI(id, { status: 'FINALIZADO' });
+    await carregarCreches();
+    alert('Sessão de creche finalizada!');
+  } catch (error) {
+    alert('Erro ao finalizar creche. Tente novamente.');
+  }
+}
+
+async function excluirCreche(id){ 
+  if(!confirm('Excluir esta sessão de creche?')) return; 
+  try {
+    await excluirCrecheAPI(id);
+    await carregarCreches();
+  } catch (error) {
+    alert('Erro ao excluir creche. Tente novamente.');
+  }
+}
 
 // ===== Orçamentos (PDF via Print) =====
 function abrirPdfHtml(titulo, corpoHtml) {
@@ -1854,25 +2459,35 @@ function renderTabelaPlanosCustom(){
 }
 
 // ===== Sistema de Comunicação =====
-function enviarMensagemCheckin(cliente, pet, data, servico) {
+async function enviarMensagemCheckin(cliente, pet, data, servico) {
   if (!configComunicacao.whatsappToken && !configComunicacao.smsApiKey) {
     console.log('Configurações de comunicação não definidas');
     return;
   }
   
-  const mensagem = configComunicacao.msgCheckin
-    .replace('{cliente}', cliente.nome)
-    .replace('{pet}', pet.nome)
-    .replace('{data}', new Date(data).toLocaleDateString('pt-BR'))
-    .replace('{servico}', servico);
+  let mensagem = configComunicacao.msgCheckin;
+  mensagem = mensagem.replace('{cliente}', cliente.nome);
+  mensagem = mensagem.replace('{pet}', pet.nome);
+  mensagem = mensagem.replace('{data}', new Date(data).toLocaleDateString('pt-BR'));
+  mensagem = mensagem.replace('{servico}', servico);
   
-  registrarMensagem(cliente.id, cliente.nome, 'Check-in', mensagem, 'Enviada');
-  
-  // Simular envio (em produção, integrar com APIs reais)
-  console.log(`📱 Mensagem enviada para ${cliente.telefone}: ${mensagem}`);
+  try {
+    const mensagemData = {
+      clienteId: cliente.id,
+      petId: pet.id,
+      tipo: 'Check-in',
+      mensagem,
+      status: 'Enviada'
+    };
+    
+    await salvarMensagemAPI(mensagemData);
+    console.log(`📱 Mensagem enviada para ${cliente.telefone}: ${mensagem}`);
+  } catch (error) {
+    console.error('Erro ao salvar mensagem:', error);
+  }
 }
 
-function enviarMensagemCheckout(hospedagemId) {
+async function enviarMensagemCheckout(hospedagemId) {
   const h = hospedagens.find(x => x.id === hospedagemId);
   if (!h) return;
   
@@ -1884,23 +2499,43 @@ function enviarMensagemCheckout(hospedagemId) {
     .replace('{cliente}', cliente.nome)
     .replace('{pet}', pet.nome);
   
-  registrarMensagem(cliente.id, cliente.nome, 'Check-out', mensagem, 'Enviada');
-  
-  // Enviar pesquisa de satisfação após 2 horas (simulado)
-  setTimeout(() => enviarPesquisaSatisfacao(cliente, pet, 'Hospedagem', h.id), 2000);
-  
-  console.log(`📱 Check-out enviado para ${cliente.telefone}: ${mensagem}`);
+  try {
+    await salvarMensagemAPI({
+      clienteId: cliente.id,
+      petId: pet.id,
+      tipo: 'Check-out',
+      mensagem,
+      status: 'Enviada'
+    });
+    
+    // Enviar pesquisa de satisfação após 2 horas (simulado)
+    setTimeout(() => enviarPesquisaSatisfacao(cliente, pet, 'Hospedagem', h.id), 2000);
+    
+    console.log(`📱 Check-out enviado para ${cliente.telefone}: ${mensagem}`);
+  } catch (error) {
+    console.error('Erro ao salvar mensagem de checkout:', error);
+  }
 }
 
-function enviarPesquisaSatisfacao(cliente, pet, servico, servicoId) {
+async function enviarPesquisaSatisfacao(cliente, pet, servico, servicoId) {
   const mensagem = configComunicacao.msgSatisfacao
     .replace('{cliente}', cliente.nome)
     .replace('{pet}', pet.nome)
     .replace('{servico}', servico);
   
-  registrarMensagem(cliente.id, cliente.nome, 'Satisfação', mensagem, 'Enviada');
-  
-  console.log(`⭐ Pesquisa de satisfação enviada para ${cliente.telefone}: ${mensagem}`);
+  try {
+    await salvarMensagemAPI({
+      clienteId: cliente.id,
+      petId: pet.id,
+      tipo: 'Satisfação',
+      mensagem,
+      status: 'Enviada'
+    });
+    
+    console.log(`⭐ Pesquisa de satisfação enviada para ${cliente.telefone}: ${mensagem}`);
+  } catch (error) {
+    console.error('Erro ao salvar pesquisa de satisfação:', error);
+  }
 }
 
 function registrarMensagem(clienteId, clienteNome, tipo, mensagem, status) {
@@ -1918,17 +2553,34 @@ function registrarMensagem(clienteId, clienteNome, tipo, mensagem, status) {
   saveState();
 }
 
-function salvarConfiguracoesComunicacao() {
-  configComunicacao.whatsappToken = document.getElementById('whatsappToken').value;
-  configComunicacao.whatsappNumero = document.getElementById('whatsappNumero').value;
-  configComunicacao.smsApiKey = document.getElementById('smsApiKey').value;
-  configComunicacao.msgCheckin = document.getElementById('msgCheckin').value;
-  configComunicacao.msgCheckout = document.getElementById('msgCheckout').value;
-  configComunicacao.msgLembrete = document.getElementById('msgLembrete').value;
-  configComunicacao.msgSatisfacao = document.getElementById('msgSatisfacao').value;
-  
-  saveState();
-  alert('✅ Configurações de comunicação salvas!');
+async function salvarConfiguracoesComunicacao() {
+  try {
+    const configData = {
+      whatsappToken: document.getElementById('whatsappToken').value,
+      whatsappNumero: document.getElementById('whatsappNumero').value,
+      smsApiKey: document.getElementById('smsApiKey').value,
+      msgCheckin: document.getElementById('msgCheckin').value,
+      msgCheckout: document.getElementById('msgCheckout').value,
+      msgLembrete: document.getElementById('msgLembrete').value,
+      msgSatisfacao: document.getElementById('msgSatisfacao').value
+    };
+
+    const response = await fetch(`${API_BASE_URL}/configuracoes-comunicacao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(configData)
+    });
+
+    if (response.ok) {
+      configComunicacao = await response.json();
+      alert('✅ Configurações de comunicação salvas!');
+    } else {
+      throw new Error('Erro ao salvar configurações');
+    }
+  } catch (error) {
+    console.error('Erro ao salvar configurações de comunicação:', error);
+    alert('Erro ao salvar configurações. Tente novamente.');
+  }
 }
 
 function preencherConfigComunicacao() {
@@ -2005,7 +2657,7 @@ function atualizarSelectClientesInadimplencia() {
   });
 }
 
-function adicionarInadimplencia() {
+async function adicionarInadimplencia() {
   const clienteId = document.getElementById('inadimplenciaCliente').value;
   const valor = parseFloat(document.getElementById('valorAtraso').value);
   const vencimento = document.getElementById('dataVencimento').value;
@@ -2019,28 +2671,22 @@ function adicionarInadimplencia() {
   const cliente = clientes.find(c => c.id == clienteId);
   if (!cliente) return;
   
-  const hoje = new Date();
-  const dataVenc = new Date(vencimento);
-  const diasAtraso = Math.max(0, Math.ceil((hoje - dataVenc) / (1000 * 60 * 60 * 24)));
-  
-  const inadimplencia = {
-    id: nextInadimplenciaId++,
-    clienteId: parseInt(clienteId),
-    clienteNome: cliente.nome,
-    valor,
-    vencimento,
-    diasAtraso,
-    descricao,
-    status: 'Pendente',
-    dataCriacao: new Date().toLocaleDateString('pt-BR')
-  };
-  
-  inadimplencias.push(inadimplencia);
-  atualizarTabelaInadimplencia();
-  limparFormularioInadimplencia();
-  saveState();
-  
-  alert('📈 Inadimplência registrada!');
+  try {
+    const inadimplenciaData = {
+      clienteId: parseInt(clienteId),
+      valor,
+      vencimento,
+      descricao
+    };
+    
+    const novaInadimplencia = await salvarInadimplenciaAPI(inadimplenciaData);
+    await carregarInadimplencias();
+    limparFormularioInadimplencia();
+    
+    alert('📈 Inadimplência registrada!');
+  } catch (error) {
+    alert('Erro ao registrar inadimplência. Tente novamente.');
+  }
 }
 
 function limparFormularioInadimplencia() {
@@ -2072,24 +2718,28 @@ function atualizarTabelaInadimplencia() {
   });
 }
 
-function marcarComoPago(id) {
-  const inadimplencia = inadimplencias.find(i => i.id === id);
-  if (!inadimplencia) return;
-  
-  inadimplencia.status = 'Pago';
-  inadimplencia.dataPagamento = new Date().toLocaleDateString('pt-BR');
-  
-  atualizarTabelaInadimplencia();
-  saveState();
-  alert('✅ Marcado como pago!');
+async function marcarComoPago(id) {
+  try {
+    await atualizarInadimplenciaAPI(id, { 
+      status: 'PAGO',
+      dataPagamento: new Date().toISOString()
+    });
+    await carregarInadimplencias();
+    alert('✅ Marcado como pago!');
+  } catch (error) {
+    alert('Erro ao atualizar inadimplência. Tente novamente.');
+  }
 }
 
-function excluirInadimplencia(id) {
+async function excluirInadimplencia(id) {
   if (!confirm('Excluir este registro de inadimplência?')) return;
   
-  inadimplencias = inadimplencias.filter(i => i.id !== id);
-  atualizarTabelaInadimplencia();
-  saveState();
+  try {
+    await excluirInadimplenciaAPI(id);
+    await carregarInadimplencias();
+  } catch (error) {
+    alert('Erro ao excluir inadimplência. Tente novamente.');
+  }
 }
 
 
@@ -2307,37 +2957,4 @@ function enviarLembrete(cliente, pet, servico, data) {
   registrarMensagem(cliente.id, cliente.nome, 'Lembrete', mensagem, 'Enviada');
   console.log(`🔔 Lembrete enviado para ${cliente.telefone}: ${mensagem}`);
 }
-
-// ===== Inicialização da Aplicação =====
-async function inicializarAplicacao() {
-  console.log('🚀 Carregando dados da API...');
-  
-  try {
-    await Promise.all([
-      carregarClientes(),
-      carregarPets(),
-      carregarHospedagens(),
-      carregarCreches(),
-      carregarConfiguracoes()
-    ]);
-    
-    console.log('✅ Dados carregados com sucesso!');
-    
-    // Atualizar interface após carregar dados
-    atualizarResumo();
-    
-  } catch (error) {
-    console.error('❌ Erro ao carregar dados:', error);
-    // Fallback para localStorage se API falhar
-    loadState();
-  }
-}
-
-// Executar quando a página carregar
-document.addEventListener('DOMContentLoaded', function() {
-  inicializarAplicacao();
-  
-  // Configurar lembretes automáticos (verificar a cada hora)
-  setInterval(verificarLembretes, 60 * 60 * 1000);
-});
 
