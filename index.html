@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clube Pet - Sistema de Gestão</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px}
+    .container{max-width:1600px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 25px 50px rgba(0,0,0,.15);overflow:hidden}
+    .header{background:linear-gradient(135deg,#ff6b6b,#ffa500);color:#fff;padding:30px;text-align:center}
+    .header h1{font-size:2.2em;margin-bottom:8px;text-shadow:2px 2px 4px rgba(0,0,0,.3)}
+    .tabs{display:flex;background:#f8f9fa;border-bottom:3px solid #e9ecef}
+    .tab{flex:1;padding:20px;text-align:center;cursor:pointer;background:#f8f9fa;border:none;font-size:16px;font-weight:600;transition:.3s;border-bottom:3px solid transparent}
+    .tab:hover{background:#e9ecef}
+    .tab.active{background:#fff;border-bottom-color:#667eea;color:#667eea}
+    .tab-content{display:none;padding:30px}
+    .tab-content.active{display:block}
+    .form-section{background:#f8f9fa;padding:25px;border-radius:15px;margin-bottom:30px;border-left:5px solid #667eea}
+    .form-section h3{color:#333;margin-bottom:20px;font-size:1.35em}
+    .form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-bottom:20px}
+    .form-group{display:flex;flex-direction:column}
+    .form-group label{margin-bottom:8px;font-weight:600;color:#555}
+    .form-group input,.form-group select,.form-group textarea{padding:12px;border:2px solid #e1e5e9;border-radius:8px;font-size:14px;transition:border-color .3s}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 3px rgba(102,126,234,.1)}
+    .btn{padding:12px 30px;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:.3s;margin:5px}
+    .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(102,126,234,.3)}
+    .btn-success{background:linear-gradient(135deg,#56ab2f,#a8e6cf);color:#fff}
+    .btn-danger{background:linear-gradient(135deg,#ff416c,#ff4b2b);color:#fff}
+    .btn-neutral{background:#e9ecef;color:#2a2a2a}
+    .table-container{overflow-x:auto;margin-top:20px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,.1)}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:15px 10px;text-align:left;font-weight:600;position:sticky;top:0}
+    td{padding:12px 10px;border-bottom:1px solid #e9ecef}
+    tr:nth-child(even){background:#f8f9fa}
+    tr:hover{background:#e3f2fd}
+    .status-badge{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;text-align:center}
+    .status-ativo{background:#d4edda;color:#155724}
+    .status-checkout{background:#f8d7da;color:#721c24}
+    .status-agendado{background:#d1ecf1;color:#0c5460}
+    .status-finalizado{background:#e2e3e5;color:#383d41}
+    .price-display{font-size:1.2em;font-weight:bold;color:#28a745;text-align:center;padding:10px;background:#f8f9fa;border-radius:8px;margin-top:10px}
+    .summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-bottom:30px}
+    .summary-card{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:25px;border-radius:15px;text-align:center;box-shadow:0 10px 25px rgba(102,126,234,.2)}
+    .summary-card h4{font-size:1.1em;margin-bottom:10px}
+    .summary-card .number{font-size:2.5em;font-weight:bold}
+    .export-section{text-align:center;margin-top:30px;padding:20px;background:#f8f9fa;border-radius:10px}
+    .prereq{display:flex;flex-wrap:wrap;gap:14px}
+    .prereq label{display:flex;align-items:center;gap:8px}
+    /* Galeria de imagens */
+    .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:15px;}
+    .thumb{position:relative;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden}
+    .thumb img{display:block;width:100%;height:100%;object-fit:cover}
+    .thumb button{position:absolute;top:6px;right:6px;border:none;border-radius:6px;padding:6px 8px;background:#ff4b2b;color:#fff;cursor:pointer}
+    /* Busca de clientes */
+    .search-box{background:#fff;padding:15px;margin-bottom:20px;border-radius:10px;border:2px solid #e9ecef}
+    .search-box input{width:100%;max-width:400px;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+    /* Pré-visualização de imagens do pet */
+    .pet-images-preview{margin-top:10px;padding:10px;background:#f9f9f9;border-radius:8px;border:1px solid #e5e7eb}
+    .pet-images-preview h4{margin-bottom:8px;font-size:14px;color:#666}
+
+    /* ===== RESPONSIVIDADE MOBILE ===== */
+    @media (max-width: 768px) {
+      body{padding:10px}
+      .container{border-radius:10px;margin:0}
+      .header{padding:20px 15px}
+      .header h1{font-size:1.8em}
+      .header p{font-size:14px}
+
+      /* Tabs responsivas */
+      .tabs{flex-wrap:wrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+      .tab{min-width:120px;padding:15px 10px;font-size:14px;white-space:nowrap}
+
+      /* Conteúdo das abas */
+      .tab-content{padding:15px}
+      .form-section{padding:15px;margin-bottom:20px}
+      .form-section h3{font-size:1.2em;margin-bottom:15px}
+
+      /* Grid responsivo */
+      .form-row{grid-template-columns:1fr;gap:15px}
+      .summary-cards{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px}
+      .summary-card{padding:20px}
+      .summary-card .number{font-size:2em}
+
+      /* Formulários */
+      .form-group input,.form-group select,.form-group textarea{padding:10px;font-size:16px}
+      .btn{padding:10px 20px;font-size:14px;margin:3px}
+
+      /* Tabelas responsivas */
+      .table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      table{min-width:600px}
+      th,td{padding:8px 6px;font-size:12px}
+      th{position:static}
+
+      /* Busca */
+      .search-box{padding:10px}
+      .search-box input{width:100%;max-width:none}
+
+      /* Galeria */
+      .gallery{grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px}
+      .thumb{height:80px}
+
+      /* Pré-requisitos */
+      .prereq{flex-direction:column;gap:8px}
+      .prereq label{font-size:14px}
+
+      /* Preço display */
+      .price-display{font-size:1.1em;padding:8px}
+
+      /* Seção de exportação */
+      .export-section{padding:15px}
+
+      /* Pet images preview */
+      .pet-images-preview{padding:8px}
+    }
+
+    @media (max-width: 480px) {
+      .header h1{font-size:1.5em}
+      .tabs{justify-content:flex-start}
+      .tab{min-width:100px;padding:12px 8px;font-size:12px}
+      .form-section h3{font-size:1.1em}
+      .summary-cards{grid-template-columns:1fr}
+      .summary-card .number{font-size:1.8em}
+      .btn{padding:8px 15px;font-size:13px}
+      th,td{padding:6px 4px;font-size:11px}
+      table{min-width:500px}
+    }
+
+    /* Touch-friendly */
+    @media (hover: none) and (pointer: coarse) {
+      .btn{min-height:44px;min-width:44px}
+      .tab{min-height:44px}
+      input,select,textarea{min-height:44px}
+      .thumb button{min-width:32px;min-height:32px}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🐾 Clube Pet – Sistema de Gestão</h1>
+      <p>Reservas de Hotel & Creche com orçamento, pré-requisitos e relatórios</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="clientes" onclick="showTab(this)">👥 Clientes</button>
+      <button class="tab" data-tab="pets" onclick="showTab(this)">🐕 Pets</button>
+      <button class="tab" data-tab="hospedagem" onclick="showTab(this)">🏨 Hospedagem</button>
+      <button class="tab" data-tab="creche" onclick="showTab(this)">🎯 Creche</button>
+      <button class="tab" data-tab="relatorios" onclick="showTab(this)">📊 Relatórios</button>
+      <button class="tab" data-tab="comunicacao" onclick="showTab(this)">📱 Comunicação</button>
+      <button class="tab" data-tab="financeiro" onclick="showTab(this)">💰 Financeiro</button>
+      <button class="tab" data-tab="configuracoes" onclick="showTab(this)">⚙️ Configurações</button>
+    </div>
+
+    <!-- CLIENTES -->
+    <div id="clientes" class="tab-content active">
+      <!-- Busca rápida -->
+      <div class="search-box">
+        <label><strong>🔍 Busca rápida:</strong></label>
+        <input type="text" id="buscaClientes" placeholder="Digite nome, telefone ou CPF do cliente..." onkeyup="buscarClientes()">
+      </div>
+
+      <div class="form-section">
+        <h3>📝 Cadastro de Clientes</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Nome Completo *</label><input type="text" id="clienteNome" placeholder="Nome do cliente"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="clienteEmail" placeholder="email@exemplo.com"></div>
+          <div class="form-group"><label>Telefone *</label><input type="tel" id="clienteTelefone" placeholder="(31) 99999-9999"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>CPF</label><input type="text" id="clienteCpf" placeholder="000.000.000-00"></div>
+          <div class="form-group"><label>Endereço</label><input type="text" id="clienteEndereco" placeholder="Rua, número, bairro"></div>
+          <div class="form-group"><label>Contato de Emergência</label><input type="text" id="clienteEmergencia" placeholder="Nome e telefone"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <button class="btn btn-primary" onclick="adicionarCliente()">➕ Adicionar Cliente</button>
+            <button class="btn btn-neutral" onclick="limparFormularioCliente()" style="margin-left:10px;">🧹 Limpar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th><th>CPF</th>
+              <th>Endereço</th><th>Emergência</th><th>Cadastro</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaClientes"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PETS -->
+    <div id="pets" class="tab-content">
+      <div class="form-section">
+        <h3>🐾 Cadastro de Pets</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cliente *</label>
+            <select id="petCliente"><option value="">Selecione o cliente</option></select>
+          </div>
+          <div class="form-group">
+            <label>Nome do Pet *</label>
+            <input type="text" id="petNome" placeholder="Nome do pet">
+          </div>
+          <div class="form-group">
+            <label>Espécie *</label>
+            <select id="petEspecie">
+              <option value="">Selecione</option>
+              <option value="Cão">Cão</option>
+              <option value="Gato">Gato</option>
+              <option value="Ave">Ave</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Raça *</label><input type="text" id="petRaca" placeholder="Raça do pet"></div>
+          <div class="form-group">
+            <label>Tamanho *</label>
+            <select id="petTamanho">
+              <option value="">Selecione</option>
+              <option value="Pequeno">Pequeno (até 10kg)</option>
+              <option value="Médio">Médio (11-25kg)</option>
+              <option value="Grande">Grande (26-45kg)</option>
+              <option value="Gigante">Gigante (acima de 45kg)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Peso (kg)</label><input type="number" id="petPeso" step="0.1" placeholder="Peso em kg"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Idade</label><input type="text" id="petIdade" placeholder="Ex: 3 anos, 6 meses"></div>
+          <div class="form-group">
+            <label>Temperamento *</label>
+            <select id="petTemperamento">
+              <option value="">Selecione</option>
+              <option value="Dócil">Dócil</option>
+              <option value="Brincalhão">Brincalhão</option>
+              <option value="Tímido">Tímido</option>
+              <option value="Agitado">Agitado</option>
+              <option value="Agressivo">Agressivo</option>
+              <option value="Calmo">Calmo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Castrado</label>
+            <select id="petCastrado">
+              <option value="Sim">Sim</option>
+              <option value="Não">Não</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Medicamentos</label><textarea id="petMedicamentos" rows="3" placeholder="Descreva medicamentos, dosagem e horários"></textarea></div>
+          <div class="form-group"><label>Nº do Cartão de Vacinas *</label><input type="text" id="petCartaoVacinaNumero" placeholder="Ex.: 12345-ABC"></div>
+          <div class="form-group"><label>Observações Especiais</label><textarea id="petObservacoes" rows="3" placeholder="Alergias, comportamentos especiais, etc."></textarea></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>📄 Foto do Cartão de Vacina</label>
+            <input type="file" id="petCartaoVacinaFoto" accept="image/*" onchange="processarCartaoVacina()">
+            <small style="color: #666; font-size: 12px;">Anexe uma foto clara do cartão de vacinas do pet</small>
+          </div>
+          <div class="form-group" id="previewCartaoVacina" style="display: none;">
+            <label>Pré-visualização</label>
+            <div id="cartaoVacinaPreview" style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; max-width: 200px;">
+              <img id="cartaoVacinaImg" style="width: 100%; height: auto; border-radius: 4px;" alt="Cartão de Vacina">
+              <button type="button" onclick="removerCartaoVacina()" style="margin-top: 5px; padding: 2px 8px; background: #ff4444; color: white; border: none; border-radius: 3px; cursor: pointer;">✕ Remover</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <button class="btn btn-primary" onclick="adicionarPet()">➕ Adicionar Pet</button>
+            <button class="btn btn-neutral" onclick="limparFormularioPet()" style="margin-left:10px;">🧹 Limpar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Galeria de imagens -->
+      <div class="form-section">
+        <h3>📷 Galeria de Imagens dos Pets</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Pet</label>
+            <select id="galeriaPetSelect" onchange="renderGaleria()"><option value="">Selecione o pet</option></select>
+          </div>
+          <div class="form-group">
+            <label>Selecionar imagens</label>
+            <input type="file" id="petImagensInput" accept="image/*" multiple>
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-primary" onclick="uploadImagensPet()">📥 Adicionar Imagens</button>
+          </div>
+        </div>
+        <div id="galeriaPet" class="gallery"></div>
+      </div>
+
+      <!-- Busca rápida de pets -->
+      <div class="search-box">
+        <label><strong>🔍 Busca rápida de pets:</strong></label>
+        <input type="text" id="buscaPets" placeholder="Digite nome do pet, cliente, espécie ou raça..." onkeyup="buscarPets()">
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Cliente</th><th>Nome</th><th>Espécie</th><th>Raça</th>
+              <th>Tamanho</th><th>Peso</th><th>Temperamento</th><th>Cartão Vac.</th><th>Medic.</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaPets"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- HOSPEDAGEM -->
+    <div id="hospedagem" class="tab-content">
+      <div class="form-section">
+        <h3>🏨 Nova Hospedagem</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Pet *</label><select id="hospedagemPet"><option value="">Selecione o pet</option></select></div>
+          <div class="form-group"><label>Data Check-in *</label><input type="date" id="hospedagemCheckin"></div>
+          <div class="form-group"><label>Data Check-out *</label><input type="date" id="hospedagemCheckout"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Plano</label>
+            <select id="hospedagemPlano">
+              <option value="avulso">Avulso</option>
+              <!-- Planos customizados (Hospedagem/Ambos) serão inseridos via JS -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Serviços Extras</label>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+              <label><input type="checkbox" id="servicoBanho"> Banho (+R$ 30)</label>
+              <label><input type="checkbox" id="servicoConsultaVet"> Consulta Veterinária (+R$ 80)</label>
+              <label><input type="checkbox" id="servicoTransporte"> Transporte (+R$ 20)</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Pré-requisitos (obrigatórios)</label>
+            <div class="prereq">
+              <label><input type="checkbox" id="prereqVacina"> Cartão de vacinas válido</label>
+              <label><input type="checkbox" id="prereqPulga"> Coleira/antipulgas</label>
+              <label><input type="checkbox" id="prereqCaminha"> Caminha própria</label>
+              <label><input type="checkbox" id="prereqComida"> Comida (ração)</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pré-visualização de imagens do pet -->
+        <div class="pet-images-preview" id="imagensHospedagemPet"></div>
+
+        <div class="price-display" id="precoHospedagem">💰 Valor Total: R$ 0,00</div>
+        <div>
+          <button class="btn btn-neutral" onclick="gerarOrcamentoHospedagem()">🧾 Gerar Orçamento (PDF)</button>
+          <button class="btn btn-success" onclick="adicionarHospedagem()">✅ Confirmar Hospedagem</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Pet</th><th>Cliente</th><th>Check-in</th><th>Check-out</th>
+              <th>Dias</th><th>Serviços</th><th>Total</th><th>Status</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaHospedagem"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CRECHE -->
+    <div id="creche" class="tab-content">
+      <div class="form-section">
+        <h3>🎯 Nova Sessão de Creche</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Pet *</label><select id="crechePet"><option value="">Selecione o pet</option></select></div>
+          <div class="form-group"><label>Data *</label><input type="date" id="crecheData"></div>
+          <div class="form-group">
+            <label>Período *</label>
+            <select id="crechePeriodo">
+              <option value="">Selecione</option>
+              <option value="Meio período">Meio período (4h)</option>
+              <option value="Período integral">Período integral (8h)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Plano</label>
+            <select id="crechePlano">
+              <option value="avulso">Avulso</option>
+              <!-- Planos customizados (Creche/Ambos) serão inseridos via JS -->
+            </select>
+          </div>
+          <div class="form-group"><label>Horário Entrada</label><input type="time" id="crecheEntrada"></div>
+          <div class="form-group"><label>Horário Saída</label><input type="time" id="crecheSaida"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Atividades Extras</label>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+              <label><input type="checkbox" id="atividadeAdaptacao"> Adaptação (+R$ 15)</label>
+              <label><input type="checkbox" id="atividadeTreinamento"> Treinamento (+R$ 25)</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Pré-requisitos (obrigatórios)</label>
+            <div class="prereq">
+              <label><input type="checkbox" id="prereqVacinaC"> Cartão de vacinas válido</label>
+              <label><input type="checkbox" id="prereqPulgaC"> Coleira/antipulgas</label>
+              <label><input type="checkbox" id="prereqCaminhaC"> Caminha própria</label>
+              <label><input type="checkbox" id="prereqComidaC"> Comida (ração)</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pré-visualização de imagens do pet -->
+        <div class="pet-images-preview" id="imagensCrechePet"></div>
+
+        <div class="price-display" id="precoCreche">💰 Valor Total: R$ 0,00</div>
+        <div>
+          <button class="btn btn-neutral" onclick="gerarOrcamentoCreche()">🧾 Gerar Orçamento (PDF)</button>
+          <button class="btn btn-success" onclick="adicionarCreche()">✅ Confirmar Creche</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Pet</th><th>Cliente</th><th>Data</th><th>Período</th>
+              <th>Plano</th><th>Entrada</th><th>Saída</th><th>Atividades</th><th>Total</th><th>Status</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCreche"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RELATÓRIOS -->
+    <div id="relatorios" class="tab-content">
+      <div class="summary-cards">
+        <div class="summary-card"><h4>Total Clientes</h4><div class="number" id="totalClientes">0</div></div>
+        <div class="summary-card"><h4>Total Pets</h4><div class="number" id="totalPets">0</div></div>
+        <div class="summary-card"><h4>Hospedagens Ativas</h4><div class="number" id="hospedagensAtivas">0</div></div>
+        <div class="summary-card"><h4>Faturamento Mensal</h4><div class="number" id="faturamentoMensal">R$ 0</div></div>
+      </div>
+
+      <div class="form-section">
+        <h3>📈 Relatório Financeiro</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Período</label>
+            <select id="relatorioPeriodo">
+              <option value="mes">Este mês</option>
+              <option value="semana">Esta semana</option>
+              <option value="hoje">Hoje</option>
+              <option value="personalizado">Personalizado</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Data Início (se personalizado)</label><input type="date" id="relatorioInicio"></div>
+          <div class="form-group"><label>Data Fim (se personalizado)</label><input type="date" id="relatorioFim"></div>
+        </div>
+        <button class="btn btn-primary" onclick="gerarRelatorio()">📊 Gerar Relatório</button>
+      </div>
+
+      <div id="relatorioResultado" style="display:none;">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Serviço</th><th>Quantidade</th><th>Receita Total</th></tr></thead>
+            <tbody id="tabelaRelatorio"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMUNICAÇÃO -->
+    <div id="comunicacao" class="tab-content">
+      <div class="form-section">
+        <h3>📱 Configurações de Comunicação</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>WhatsApp Business API Token</label>
+            <input type="password" id="whatsappToken" placeholder="Token da API do WhatsApp Business">
+          </div>
+          <div class="form-group">
+            <label>Número do WhatsApp Business</label>
+            <input type="tel" id="whatsappNumero" placeholder="5531999999999">
+          </div>
+          <div class="form-group">
+            <label>SMS Provider API Key</label>
+            <input type="password" id="smsApiKey" placeholder="Chave da API SMS">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Mensagem Check-in (WhatsApp)</label>
+            <textarea id="msgCheckin" rows="3" placeholder="Olá {cliente}! Confirmamos o check-in do {pet} para {data}. Qualquer dúvida, entre em contato!">Olá {cliente}! ✅ Confirmamos o check-in do {pet} para {data}. Estamos ansiosos para receber seu peludo! 🐾</textarea>
+          </div>
+          <div class="form-group">
+            <label>Mensagem Check-out (WhatsApp)</label>
+            <textarea id="msgCheckout" rows="3" placeholder="Olá {cliente}! O {pet} está pronto para o check-out. Pode vir buscar!">Olá {cliente}! 🏠 O {pet} está pronto para o check-out. Pode vir buscar seu peludo! Ele se comportou muito bem! 😊</textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Mensagem Lembrete (24h antes)</label>
+            <textarea id="msgLembrete" rows="3" placeholder="Lembrete: {pet} tem {servico} amanhã ({data})">🔔 Lembrete: {pet} tem {servico} amanhã ({data}). Não esqueça dos pré-requisitos: cartão de vacinas, coleira antipulgas, caminha e ração!</textarea>
+          </div>
+          <div class="form-group">
+            <label>Pesquisa de Satisfação</label>
+            <textarea id="msgSatisfacao" rows="3" placeholder="Como foi a experiência com nossos serviços?">Olá {cliente}! Como foi a experiência do {pet} conosco? Por favor, avalie de 1 a 5: ⭐⭐⭐⭐⭐ Sua opinião é muito importante!</textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="salvarConfiguracoesComunicacao()">💾 Salvar Configurações</button>
+      </div>
+
+
+      <div class="form-section">
+        <h3>⭐ Avaliações de Satisfação</h3>
+        <div class="summary-cards">
+          <div class="summary-card"><h4>Média Geral</h4><div class="number" id="mediaSatisfacao">0.0</div></div>
+          <div class="summary-card"><h4>Total Avaliações</h4><div class="number" id="totalAvaliacoes">0</div></div>
+          <div class="summary-card"><h4>Última Semana</h4><div class="number" id="avaliacoesSemana">0</div></div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Cliente</th><th>Pet</th><th>Serviço</th><th>Nota</th><th>Comentário</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaAvaliacoes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINANCEIRO -->
+    <div id="financeiro" class="tab-content">
+      <div class="summary-cards">
+        <div class="summary-card"><h4>Receita Hoje</h4><div class="number" id="receitaHoje">R$ 0</div></div>
+        <div class="summary-card"><h4>Receita Semana</h4><div class="number" id="receitaSemana">R$ 0</div></div>
+        <div class="summary-card"><h4>Receita Mês</h4><div class="number" id="receitaMes">R$ 0</div></div>
+      </div>
+
+
+      <div class="form-section">
+        <h3>📈 Controle de Inadimplência</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cliente</label>
+            <select id="inadimplenciaCliente">
+              <option value="">Selecione o cliente</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valor em Atraso</label>
+            <input type="number" id="valorAtraso" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label>Data Vencimento</label>
+            <input type="date" id="dataVencimento">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Descrição</label>
+            <input type="text" id="descricaoInadimplencia" placeholder="Ex: Hospedagem de Janeiro">
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-primary" onclick="adicionarInadimplencia()">➕ Registrar Inadimplência</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th><th>Valor</th><th>Vencimento</th><th>Dias Atraso</th><th>Descrição</th><th>Status</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaInadimplencia"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURAÇÕES -->
+    <div id="configuracoes" class="tab-content">
+      <div class="form-section">
+        <h3>💰 Configuração de Preços</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Hospedagem - Pequeno (diária)</label><input type="number" id="precoHospedagemPequeno" value="80" step="0.01"></div>
+          <div class="form-group"><label>Hospedagem - Médio (diária)</label><input type="number" id="precoHospedagemMedio" value="100" step="0.01"></div>
+          <div class="form-group"><label>Hospedagem - Grande (diária)</label><input type="number" id="precoHospedagemGrande" value="120" step="0.01"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Hospedagem - Gigante (diária)</label><input type="number" id="precoHospedagemGigante" value="150" step="0.01"></div>
+        </div>
+        
+        <h4>🎯 Preços da Creche - Meio Período</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Pequeno (dia)</label><input type="number" id="precoCrecheMeioPequeno" value="40" step="0.01"></div>
+          <div class="form-group"><label>Médio (dia)</label><input type="number" id="precoCrecheMeioMedio" value="50" step="0.01"></div>
+          <div class="form-group"><label>Grande (dia)</label><input type="number" id="precoCrecheMeioGrande" value="60" step="0.01"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Gigante (dia)</label><input type="number" id="precoCrecheMeioGigante" value="70" step="0.01"></div>
+        </div>
+        
+        <h4>🎯 Preços da Creche - Período Integral</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Pequeno (dia)</label><input type="number" id="precoCrecheIntegralPequeno" value="65" step="0.01"></div>
+          <div class="form-group"><label>Médio (dia)</label><input type="number" id="precoCrecheIntegralMedio" value="80" step="0.01"></div>
+          <div class="form-group"><label>Grande (dia)</label><input type="number" id="precoCrecheIntegralGrande" value="95" step="0.01"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Gigante (dia)</label><input type="number" id="precoCrecheIntegralGigante" value="110" step="0.01"></div>
+        </div>
+        <button class="btn btn-primary" onclick="salvarConfiguracoes()">💾 Salvar Configurações</button>
+      </div>
+
+      <!-- Planos customizados -->
+      <div class="form-section">
+        <h3>📦 Planos Customizados</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Nome do plano</label><input type="text" id="customPlanoNome" placeholder="Ex.: Plano Anual Premium"></div>
+          <div class="form-group"><label>Duração (meses)</label><input type="number" id="customPlanoMeses" min="1" value="12"></div>
+          <div class="form-group"><label>Dias por mês</label><input type="number" id="customPlanoDiasMes" min="1" value="10"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Desconto (%)</label><input type="number" id="customPlanoDesconto" min="0" max="100" step="0.01" value="15"></div>
+          <div class="form-group">
+            <label>Aplica a</label>
+            <select id="customPlanoAplica">
+              <option value="ambos">Hospedagem + Creche</option>
+              <option value="hospedagem">Apenas Hospedagem</option>
+              <option value="creche">Apenas Creche</option>
+            </select>
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-primary" onclick="adicionarPlanoCustom()">➕ Adicionar Plano</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th><th>Meses</th><th>Dias/mês</th><th>Total dias</th><th>Desconto</th><th>Aplica a</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaPlanosCustom"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="export-section">
+        <h3>📥 Exportar Dados</h3>
+        <p>Exporte todos os dados do sistema em planilhas Excel (XLSX)</p>
+        <div class="form-row" style="justify-content:center;">
+          <div class="form-group" style="max-width:400px;width:100%;">
+            <label>Imagem para aba Resumo (opcional)</label>
+            <input type="file" id="xlsxImagem" accept="image/*">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="exportarExcel()">📊 Exportar Planilha Completa (XLSX)</button>
+        <button class="btn btn-primary" onclick="exportarRelatorio()">📋 Exportar Relatório Financeiro (XLSX)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Libs ExcelJS + FileSaver -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script>
+    // Fallback para ExcelJS se não carregar
+    if (!window.ExcelJS) {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js';
+      script.onload = () => console.log('ExcelJS carregado via fallback');
+      document.head.appendChild(script);
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  
+  <script>
+    // Fallback para FileSaver se não carregar
+    if (!window.saveAs) {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js';
+      script.onload = () => console.log('FileSaver carregado via fallback');
+      document.head.appendChild(script);
+    }
+  </script>
+
+  <!-- App -->
+  <script src="app.js"></script>
+</body>
+</html>
+
