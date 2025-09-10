@@ -215,17 +215,43 @@ async function carregarClientes() {
 
 async function salvarClienteAPI(clienteData) {
   try {
+    console.log('🔄 Enviando dados para API:', clienteData);
+    
     const response = await fetch(`${API_BASE_URL}/clientes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(clienteData)
     });
+    
+    console.log('📡 Resposta da API - Status:', response.status);
+    
     if (response.ok) {
-      return await response.json();
+      const resultado = await response.json();
+      console.log('✅ Cliente salvo com sucesso:', resultado);
+      return resultado;
     }
-    throw new Error('Erro ao salvar cliente');
+    
+    // Tentar obter detalhes do erro da resposta
+    let errorMessage = `Erro HTTP ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // Se não conseguir parsear o JSON do erro, usar mensagem padrão
+      errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+    }
+    
+    console.error('❌ Erro da API:', errorMessage);
+    throw new Error(errorMessage);
+    
   } catch (error) {
-    console.error('Erro ao salvar cliente:', error);
+    console.error('❌ Erro ao conectar com a API:', error);
+    
+    // Verificar se é erro de rede
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Erro de conexão com a API. Verifique sua internet.');
+    }
+    
     throw error;
   }
 }
@@ -289,17 +315,43 @@ async function carregarPets() {
 
 async function salvarPetAPI(petData) {
   try {
+    console.log('🔄 Enviando dados do pet para API:', petData);
+    
     const response = await fetch(`${API_BASE_URL}/pets`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(petData)
     });
+    
+    console.log('📡 Resposta da API - Status:', response.status);
+    
     if (response.ok) {
-      return await response.json();
+      const resultado = await response.json();
+      console.log('✅ Pet salvo com sucesso:', resultado);
+      return resultado;
     }
-    throw new Error('Erro ao salvar pet');
+    
+    // Tentar obter detalhes do erro da resposta
+    let errorMessage = `Erro HTTP ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // Se não conseguir parsear o JSON do erro, usar mensagem padrão
+      errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+    }
+    
+    console.error('❌ Erro da API:', errorMessage);
+    throw new Error(errorMessage);
+    
   } catch (error) {
-    console.error('Erro ao salvar pet:', error);
+    console.error('❌ Erro ao conectar com a API:', error);
+    
+    // Verificar se é erro de rede
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Erro de conexão com a API. Verifique sua internet.');
+    }
+    
     throw error;
   }
 }
