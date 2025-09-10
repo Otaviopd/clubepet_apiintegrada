@@ -877,10 +877,10 @@ async function adicionarCliente(){
       nome: nome, 
       telefone: telefone,
       // Campos opcionais: enviar null se estiverem vazios para evitar conflitos de unique constraint
-      email: email || null, 
-      cpf: cpf || null, 
-      endereco: endereco || null, 
-      emergencia: emergencia || null 
+      email: email && email.trim() !== '' ? email : null, 
+      cpf: cpf && cpf.trim() !== '' ? cpf : null, 
+      endereco: endereco && endereco.trim() !== '' ? endereco : null, 
+      emergencia: emergencia && emergencia.trim() !== '' ? emergencia : null 
     };
     
     console.log('Enviando dados do cliente:', clienteData);
