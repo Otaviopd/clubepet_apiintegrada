@@ -301,7 +301,6 @@ async function adicionarCliente(){
   if(!nome || !telefone){ alert('Nome e telefone são obrigatórios!'); return; }
   
   try {
-    // Tentar salvar na API primeiro
     const clienteData = { nome, email, telefone, cpf, endereco, emergencia };
     const novoCliente = await salvarClienteAPI(clienteData);
     await carregarClientes(); // Recarrega a lista
@@ -309,19 +308,7 @@ async function adicionarCliente(){
     alert('Cliente cadastrado com sucesso!'); 
     saveState();
   } catch (error) {
-    console.warn('API indisponível, salvando localmente:', error);
-    // Fallback: salvar no localStorage
-    const cliente = { 
-      id: nextClienteId++, 
-      nome, email, telefone, cpf, endereco, emergencia,
-      dataCadastro: new Date().toLocaleDateString('pt-BR') 
-    };
-    clientes.push(cliente);
-    atualizarTabelaClientes(); 
-    atualizarSelectClientes(); 
-    limparFormularioCliente(); 
-    alert('Cliente cadastrado localmente (API temporariamente indisponível)!'); 
-    saveState();
+    alert('Erro ao cadastrar cliente. Tente novamente.');
   }
 }
 
