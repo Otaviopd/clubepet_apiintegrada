@@ -63,18 +63,19 @@ async function carregarTodosDados() {
   try {
     console.log('🔄 Carregando todos os dados da API...');
     
-    // Carregar dados em paralelo
+    // Carregar dados em paralelo - apenas endpoints que existem
     await Promise.all([
       carregarClientes(),
       carregarPets(),
       carregarHospedagens(),
-      carregarCreches(),
-      carregarMensagens(),
-      carregarAvaliacoes(),
-      carregarInadimplencias(),
-      carregarConfiguracoes(),
-      carregarConfiguracoesComunicacao(),
-      carregarPlanosCustomizados()
+      carregarCreches()
+      // Removidos endpoints que retornam 404:
+      // carregarMensagens(),
+      // carregarAvaliacoes(), 
+      // carregarInadimplencias(),
+      // carregarConfiguracoes(),
+      // carregarConfiguracoesComunicacao(),
+      // carregarPlanosCustomizados()
     ]);
     
     console.log('✅ Todos os dados carregados da API');
@@ -510,21 +511,9 @@ async function excluirCrecheAPI(id) {
 
 // ===== MENSAGENS API =====
 async function carregarMensagens() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/mensagens`);
-    if (response.ok) {
-      const mensagensAPI = await response.json();
-      mensagens = mensagensAPI.map(m => ({
-        ...m,
-        clienteNome: m.cliente?.nome || m.clienteNome,
-        petNome: m.pet?.nome || m.petNome,
-        dataHora: new Date(m.dataHora).toLocaleString('pt-BR')
-      }));
-      atualizarTabelaMensagens();
-    }
-  } catch (error) {
-    console.error('Erro ao carregar mensagens:', error);
-  }
+  // Endpoint não existe na API - usando dados locais
+  console.log('⚠️ Endpoint /mensagens não disponível - usando localStorage');
+  return;
 }
 
 async function salvarMensagemAPI(mensagemData) {
@@ -578,22 +567,9 @@ async function excluirMensagemAPI(id) {
 
 // ===== AVALIAÇÕES API =====
 async function carregarAvaliacoes() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/avaliacoes`);
-    if (response.ok) {
-      const avaliacoesAPI = await response.json();
-      avaliacoes = avaliacoesAPI.map(a => ({
-        ...a,
-        clienteNome: a.cliente?.nome || a.clienteNome,
-        petNome: a.pet?.nome || a.petNome,
-        data: new Date(a.data).toLocaleDateString('pt-BR')
-      }));
-      atualizarTabelaAvaliacoes();
-      atualizarResumoSatisfacao();
-    }
-  } catch (error) {
-    console.error('Erro ao carregar avaliações:', error);
-  }
+  // Endpoint não existe na API - usando dados locais
+  console.log('⚠️ Endpoint /avaliacoes não disponível - usando localStorage');
+  return;
 }
 
 async function salvarAvaliacaoAPI(avaliacaoData) {
@@ -647,23 +623,9 @@ async function excluirAvaliacaoAPI(id) {
 
 // ===== INADIMPLÊNCIAS API =====
 async function carregarInadimplencias() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/inadimplencias`);
-    if (response.ok) {
-      const inadimplenciasAPI = await response.json();
-      inadimplencias = inadimplenciasAPI.map(i => ({
-        ...i,
-        clienteNome: i.cliente?.nome || i.clienteNome,
-        vencimento: new Date(i.vencimento).toLocaleDateString('pt-BR'),
-        dataPagamento: i.dataPagamento ? new Date(i.dataPagamento).toLocaleDateString('pt-BR') : null,
-        dataCriacao: new Date(i.dataCriacao).toLocaleDateString('pt-BR')
-      }));
-      atualizarTabelaInadimplencia();
-      atualizarResumoFinanceiro();
-    }
-  } catch (error) {
-    console.error('Erro ao carregar inadimplências:', error);
-  }
+  // Endpoint não existe na API - usando dados locais
+  console.log('⚠️ Endpoint /inadimplencias não disponível - usando localStorage');
+  return;
 }
 
 async function salvarInadimplenciaAPI(inadimplenciaData) {
@@ -717,32 +679,9 @@ async function excluirInadimplenciaAPI(id) {
 
 // ===== CONFIGURAÇÕES API =====
 async function carregarConfiguracoes() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/configuracoes`);
-    if (response.ok) {
-      const config = await response.json();
-      // Atualizar preços locais com dados da API
-      precos.hospedagem.pequeno = config.precoHospedagemPequeno;
-      precos.hospedagem.medio = config.precoHospedagemMedio;
-      precos.hospedagem.grande = config.precoHospedagemGrande;
-      precos.hospedagem.gigante = config.precoHospedagemGigante;
-      precos.creche.meio.pequeno = config.precoCrecheMeioPequeno;
-      precos.creche.meio.medio = config.precoCrecheMeioMedio;
-      precos.creche.meio.grande = config.precoCrecheMeioGrande;
-      precos.creche.meio.gigante = config.precoCrecheMeioGigante;
-      precos.creche.integral.pequeno = config.precoCrecheIntegralPequeno;
-      precos.creche.integral.medio = config.precoCrecheIntegralMedio;
-      precos.creche.integral.grande = config.precoCrecheIntegralGrande;
-      precos.creche.integral.gigante = config.precoCrecheIntegralGigante;
-      precos.extras.banho = config.precoBanho;
-      precos.extras.consulta = config.precoConsulta;
-      precos.extras.transporte = config.precoTransporte;
-      precos.extras.adaptacao = config.precoAdaptacao;
-      precos.extras.treinamento = config.precoTreinamento;
-    }
-  } catch (error) {
-    console.error('Erro ao carregar configurações:', error);
-  }
+  // Endpoint não existe na API - usando dados locais
+  console.log('⚠️ Endpoint /configuracoes não disponível - usando localStorage');
+  return;
 }
 
 async function salvarConfiguracoes() {
@@ -781,16 +720,9 @@ async function salvarConfiguracoes() {
 }
 
 async function carregarConfiguracoesComunicacao() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/configuracoes-comunicacao`);
-    if (response.ok) {
-      const config = await response.json();
-      configComunicacao = config;
-      preencherConfigComunicacao();
-    }
-  } catch (error) {
-    console.error('Erro ao carregar configurações de comunicação:', error);
-  }
+  // Endpoint não existe na API - usando dados locais
+  console.log('⚠️ Endpoint /configuracoes-comunicacao não disponível - usando localStorage');
+  return;
 }
 
 async function salvarConfiguracoesComunicacao() {
@@ -825,18 +757,9 @@ async function salvarConfiguracoesComunicacao() {
 
 // ===== PLANOS CUSTOMIZADOS API =====
 async function carregarPlanosCustomizados() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/planos-customizados`);
-    if (response.ok) {
-      const planosAPI = await response.json();
-      precos.planosCustom = planosAPI;
-      renderTabelaPlanosCustom();
-      popularPlanosEmHospedagem();
-      popularPlanosEmCreche();
-    }
-  } catch (error) {
-    console.error('Erro ao carregar planos customizados:', error);
-  }
+  // Endpoint não existe na API - usando dados locais
+  console.log('⚠️ Endpoint /planos-customizados não disponível - usando localStorage');
+  return;
 }
 
 async function salvarPlanoCustomizadoAPI(planoData) {
