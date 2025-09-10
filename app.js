@@ -1919,13 +1919,12 @@ function gerarComprovanteHospedagem(id) {
         <div style="color: #0c5460; font-size: 12px; line-height: 1.5;">
           <p>• O pet será cuidado com carinho e atenção durante toda a hospedagem</p>
           <p>• Qualquer emergência será comunicada imediatamente</p>
-          <p>• Check-out disponível a partir das 8h no dia agendado</p>
-          <p>• Em caso de dúvidas, entre em contato: (11) 99999-9999</p>
+          <p>• Em caso de dúvidas, entre em contato: (37)99837-1784</p>
         </div>
       </div>
       
       <div style="margin-top: 40px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 12px;">
-        <p><strong>Clube Pet</strong> - Pet Sector e Hotel</p>
+        <p><strong>Clube Pet</strong> - Clube Pet</p>
         <p>Emitido em: ${agora}</p>
         <p style="margin-top: 15px; font-style: italic;">Obrigado por confiar em nossos serviços!</p>
       </div>
@@ -2008,12 +2007,12 @@ function gerarComprovanteCreche(id) {
           <p>• Seu pet será acompanhado por profissionais qualificados</p>
           <p>• Relatório diário disponível via WhatsApp</p>
           <p>• Busca disponível no horário combinado</p>
-          <p>• Em caso de emergência: (11) 99999-9999</p>
+          <p>• Em caso de emergência: (37)99837-1784</p>
         </div>
       </div>
       
       <div style="margin-top: 40px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; color: #666; font-size: 12px;">
-        <p><strong>Clube Pet</strong> - Pet Sector e Hotel</p>
+        <p><strong>Clube Pet</strong> - Clube Pet</p>
         <p>Emitido em: ${agora}</p>
         <p style="margin-top: 15px; font-style: italic;">Obrigado por confiar em nossos serviços!</p>
       </div>
