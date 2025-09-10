@@ -873,22 +873,38 @@ async function excluirPlanoCustomizadoAPI(id) {
 
 // ===== Clientes =====
 async function adicionarCliente(){
-  const nome = document.getElementById('clienteNome').value.trim();
-  const email = document.getElementById('clienteEmail').value.trim();
-  const telefone = document.getElementById('clienteTelefone').value.trim();
-  const cpf = document.getElementById('clienteCpf').value.trim();
-  const endereco = document.getElementById('clienteEndereco').value.trim();
-  const emergencia = document.getElementById('clienteEmergencia').value.trim();
-  if(!nome || !telefone){ alert('Nome e telefone são obrigatórios!'); return; }
+  const nome = document.getElementById('clienteNome')?.value?.trim();
+  const email = document.getElementById('clienteEmail')?.value?.trim();
+  const telefone = document.getElementById('clienteTelefone')?.value?.trim();
+  const cpf = document.getElementById('clienteCpf')?.value?.trim();
+  const endereco = document.getElementById('clienteEndereco')?.value?.trim();
+  const emergencia = document.getElementById('clienteEmergencia')?.value?.trim();
+  
+  if(!nome || !telefone){ 
+    alert('Nome e telefone são obrigatórios!'); 
+    return; 
+  }
   
   try {
-    const clienteData = { nome, email, telefone, cpf, endereco, emergencia };
+    const clienteData = { 
+      nome: nome || '', 
+      email: email || '', 
+      telefone: telefone || '', 
+      cpf: cpf || '', 
+      endereco: endereco || '', 
+      emergencia: emergencia || '' 
+    };
+    
+    console.log('Enviando dados do cliente:', clienteData);
     const novoCliente = await salvarClienteAPI(clienteData);
-    await carregarClientes(); // Recarrega a lista
+    console.log('Cliente salvo:', novoCliente);
+    
+    await carregarClientes();
     limparFormularioCliente(); 
-    alert('Cliente cadastrado com sucesso!'); 
+    alert('✅ Cliente cadastrado com sucesso!'); 
   } catch (error) {
-    alert('Erro ao cadastrar cliente. Tente novamente.');
+    console.error('Erro detalhado ao cadastrar cliente:', error);
+    alert('❌ Erro ao cadastrar cliente: ' + (error.message || 'Tente novamente.'));
   }
 }
 
@@ -918,10 +934,21 @@ async function salvarEdicaoCliente(id){
   const endereco = document.getElementById('clienteEndereco').value.trim();
   const emergencia = document.getElementById('clienteEmergencia').value.trim();
   
-  if(!nome || !telefone){ alert('Nome e telefone são obrigatórios!'); return; }
+  if(!nome || !telefone){ 
+    alert('Nome e telefone são obrigatórios!'); 
+    return; 
+  }
   
   try {
-    const clienteData = { nome, email, telefone, cpf, endereco, emergencia };
+    const clienteData = { 
+      nome, 
+      email, 
+      telefone, 
+      cpf, 
+      endereco, 
+      emergencia 
+    };
+    
     await atualizarClienteAPI(id, clienteData);
     await carregarClientes();
     limparFormularioCliente();
@@ -938,7 +965,10 @@ async function salvarEdicaoCliente(id){
 }
 
 function limparFormularioCliente(){ 
-  ['clienteNome','clienteEmail','clienteTelefone','clienteCpf','clienteEndereco','clienteEmergencia'].forEach(id=>document.getElementById(id).value='');
+  ['clienteNome','clienteEmail','clienteTelefone','clienteCpf','clienteEndereco','clienteEmergencia'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
   // Restaurar botão se estava em modo edição
   const btn = document.querySelector('button[onclick*="salvarEdicao"]') || document.querySelector('button[onclick="adicionarCliente()"]');
   if(btn){
@@ -975,36 +1005,51 @@ function atualizarSelectClientes(){
 
 // ===== Pets =====
 async function adicionarPet(){
-  const clienteId = document.getElementById('petCliente').value;
-  const nome = document.getElementById('petNome').value.trim();
-  const especie = document.getElementById('petEspecie').value;
-  const raca = document.getElementById('petRaca').value.trim();
-  const tamanho = document.getElementById('petTamanho').value;
-  const peso = document.getElementById('petPeso').value;
-  const idade = document.getElementById('petIdade').value.trim();
-  const temperamento = document.getElementById('petTemperamento').value;
-  const castrado = document.getElementById('petCastrado').value;
-  const medicamentos = document.getElementById('petMedicamentos').value.trim();
-  const cartao = document.getElementById('petCartaoVacinaNumero').value.trim();
-  const observacoes = document.getElementById('petObservacoes').value.trim();
+  const clienteId = document.getElementById('petCliente')?.value;
+  const nome = document.getElementById('petNome')?.value?.trim();
+  const especie = document.getElementById('petEspecie')?.value;
+  const raca = document.getElementById('petRaca')?.value?.trim();
+  const tamanho = document.getElementById('petTamanho')?.value;
+  const peso = document.getElementById('petPeso')?.value;
+  const idade = document.getElementById('petIdade')?.value?.trim();
+  const temperamento = document.getElementById('petTemperamento')?.value;
+  const castrado = document.getElementById('petCastrado')?.value;
+  const medicamentos = document.getElementById('petMedicamentos')?.value?.trim();
+  const cartao = document.getElementById('petCartaoVacinaNumero')?.value?.trim();
+  const observacoes = document.getElementById('petObservacoes')?.value?.trim();
 
-  if(!clienteId || !nome || !especie || !raca || !tamanho || !temperamento){ alert('Campos obrigatórios: Cliente, Nome, Espécie, Raça, Tamanho e Temperamento.'); return; }
-  if(!cartao){ alert('Informe o Nº do Cartão de Vacinas do pet.'); return; }
+  if(!clienteId || !nome || !especie || !raca || !tamanho || !temperamento){ 
+    alert('Campos obrigatórios: Cliente, Nome, Espécie, Raça, Tamanho e Temperamento.'); 
+    return; 
+  }
+  if(!cartao){ 
+    alert('Informe o Nº do Cartão de Vacinas do pet.'); 
+    return; 
+  }
 
   try {
     const petData = {
       clienteId: parseInt(clienteId),
-      nome, especie, raca, tamanho, 
+      nome: nome || '',
+      especie: especie || '',
+      raca: raca || '',
+      tamanho: tamanho || '',
       peso: peso ? parseFloat(peso) : null,
-      idade, temperamento, castrado, medicamentos,
-      cartaoVacinaNumero: cartao, observacoes
+      idade: idade || '',
+      temperamento: temperamento || '',
+      castrado: castrado || 'Sim',
+      medicamentos: medicamentos || '',
+      cartaoVacinaNumero: cartao || '',
+      observacoes: observacoes || ''
     };
     
+    console.log('Enviando dados do pet:', petData);
     const novoPet = await salvarPetAPI(petData);
+    console.log('Pet salvo:', novoPet);
     
     // Salvar foto do cartão de vacina se houver
     const fileInput = document.getElementById('petCartaoVacinaFoto');
-    if (fileInput.files[0]) {
+    if (fileInput && fileInput.files && fileInput.files[0]) {
       const file = fileInput.files[0];
       const reader = new FileReader();
       reader.onload = async function(e) {
@@ -1014,6 +1059,7 @@ async function adicionarPet(){
             src: e.target.result,
             tipo: 'cartao_vacina'
           });
+          console.log('Foto do cartão salva com sucesso');
         } catch (error) {
           console.error('Erro ao salvar foto do cartão:', error);
         }
@@ -1023,9 +1069,10 @@ async function adicionarPet(){
     
     await carregarPets();
     limparFormularioPet(); 
-    alert('Pet cadastrado com sucesso!'); 
+    alert('✅ Pet cadastrado com sucesso!'); 
   } catch (error) {
-    alert('Erro ao cadastrar pet. Tente novamente.');
+    console.error('Erro detalhado ao cadastrar pet:', error);
+    alert('❌ Erro ao cadastrar pet: ' + (error.message || 'Tente novamente.'));
   }
 }
 
@@ -1067,16 +1114,29 @@ async function salvarEdicaoPet(id){
   const cartao = document.getElementById('petCartaoVacinaNumero').value.trim();
   const observacoes = document.getElementById('petObservacoes').value.trim();
 
-  if(!clienteId || !nome || !especie || !raca || !tamanho || !temperamento){ alert('Campos obrigatórios: Cliente, Nome, Espécie, Raça, Tamanho e Temperamento.'); return; }
-  if(!cartao){ alert('Informe o Nº do Cartão de Vacinas do pet.'); return; }
+  if(!clienteId || !nome || !especie || !raca || !tamanho || !temperamento){ 
+    alert('Campos obrigatórios: Cliente, Nome, Espécie, Raça, Tamanho e Temperamento.'); 
+    return; 
+  }
+  if(!cartao){ 
+    alert('Informe o Nº do Cartão de Vacinas do pet.'); 
+    return; 
+  }
 
   try {
     const petData = {
       clienteId: parseInt(clienteId),
-      nome, especie, raca, tamanho,
+      nome: nome || '',
+      especie: especie || '',
+      raca: raca || '',
+      tamanho: tamanho || '',
       peso: peso ? parseFloat(peso) : null,
-      idade, temperamento, castrado, medicamentos,
-      cartaoVacinaNumero: cartao, observacoes
+      idade: idade || '',
+      temperamento: temperamento || '',
+      castrado: castrado || 'Sim',
+      medicamentos: medicamentos || '',
+      cartaoVacinaNumero: cartao || '',
+      observacoes: observacoes || ''
     };
     
     await atualizarPetAPI(id, petData);
@@ -1090,9 +1150,21 @@ async function salvarEdicaoPet(id){
 }
 
 function limparFormularioPet(){ 
-  ['petCliente','petNome','petEspecie','petRaca','petTamanho','petPeso','petIdade','petTemperamento','petCastrado','petMedicamentos','petCartaoVacinaNumero','petObservacoes'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; if(el.tagName==='SELECT') el.value=''; else el.value=''; }); 
-  document.getElementById('petCastrado').value='Sim'; 
-  document.getElementById('petImagensInput').value='';
+  ['petCliente','petNome','petEspecie','petRaca','petTamanho','petPeso','petIdade','petTemperamento','petCastrado','petMedicamentos','petCartaoVacinaNumero','petObservacoes'].forEach(id=>{ 
+    const el = document.getElementById(id); 
+    if(!el) return; 
+    if(el.tagName === 'SELECT') el.selectedIndex = 0; 
+    else el.value = ''; 
+  }); 
+  
+  const castradoEl = document.getElementById('petCastrado');
+  if(castradoEl) castradoEl.value = 'Sim';
+  
+  const imagensEl = document.getElementById('petImagensInput');
+  if(imagensEl) imagensEl.value = '';
+  
+  const cartaoFotoEl = document.getElementById('petCartaoVacinaFoto');
+  if(cartaoFotoEl) cartaoFotoEl.value = '';
   document.getElementById('petCartaoVacinaFoto').value='';
   document.getElementById('previewCartaoVacina').style.display = 'none';
   
