@@ -160,6 +160,136 @@ async function salvarClienteAPI(clienteData) {
   }
 }
 
+async function carregarPets() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pets`);
+    if (response.ok) {
+      pets = await response.json();
+      atualizarTabelaPets();
+      atualizarSelectPets('hospedagemPet');
+      atualizarSelectPets('crechePet');
+      preencherPetsEmGaleria();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar pets:', error);
+  }
+}
+
+async function salvarPetAPI(petData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(petData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar pet');
+  } catch (error) {
+    console.error('Erro ao salvar pet:', error);
+    throw error;
+  }
+}
+
+async function carregarHospedagens() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/hospedagens`);
+    if (response.ok) {
+      hospedagens = await response.json();
+      atualizarTabelaHospedagem();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar hospedagens:', error);
+  }
+}
+
+async function salvarHospedagemAPI(hospedagemData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/hospedagens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(hospedagemData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar hospedagem');
+  } catch (error) {
+    console.error('Erro ao salvar hospedagem:', error);
+    throw error;
+  }
+}
+
+async function carregarCreches() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creches`);
+    if (response.ok) {
+      creches = await response.json();
+      atualizarTabelaCreche();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar creches:', error);
+  }
+}
+
+async function salvarCrecheAPI(crecheData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/creches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(crecheData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar creche');
+  } catch (error) {
+    console.error('Erro ao salvar creche:', error);
+    throw error;
+  }
+}
+
+async function carregarConfiguracoes() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/configuracoes-comunicacao`);
+    if (response.ok) {
+      const configs = await response.json();
+      if (configs.length > 0) {
+        const config = configs[0];
+        configComunicacao = {
+          whatsappToken: config.whatsappToken || '',
+          whatsappNumero: config.whatsappNumero || '',
+          smsApiKey: config.smsApiKey || '',
+          msgCheckin: config.msgCheckin || configComunicacao.msgCheckin,
+          msgCheckout: config.msgCheckout || configComunicacao.msgCheckout,
+          msgLembrete: config.msgLembrete || configComunicacao.msgLembrete,
+          msgSatisfacao: config.msgSatisfacao || configComunicacao.msgSatisfacao
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar configurações:', error);
+  }
+}
+
+async function salvarConfiguracaoAPI(configData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/configuracoes-comunicacao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(configData)
+    });
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error('Erro ao salvar configuração');
+  } catch (error) {
+    console.error('Erro ao salvar configuração:', error);
+    throw error;
+  }
+}
+
 // ===== Clientes =====
 async function adicionarCliente(){
   const nome = document.getElementById('clienteNome').value.trim();
@@ -263,7 +393,7 @@ function atualizarSelectClientes(){
 }
 
 // ===== Pets =====
-function adicionarPet(){
+async function adicionarPet(){
   const clienteId = document.getElementById('petCliente').value;
   const nome = document.getElementById('petNome').value.trim();
   const especie = document.getElementById('petEspecie').value;
@@ -280,20 +410,30 @@ function adicionarPet(){
   if(!clienteId || !nome || !especie || !raca || !tamanho || !temperamento){ alert('Campos obrigatórios: Cliente, Nome, Espécie, Raça, Tamanho e Temperamento.'); return; }
   if(!cartao){ alert('Informe o Nº do Cartão de Vacinas do pet.'); return; }
 
-  const cliente = clientes.find(c=>c.id==clienteId);
-  const pet = { id: nextPetId++, clienteId: parseInt(clienteId), clienteNome: cliente?cliente.nome:'—',
-    nome, especie, raca, tamanho, peso: peso?parseFloat(peso):null, idade, temperamento, castrado, medicamentos,
-    cartaoVacinaNumero: cartao, cartaoVacinaFoto: null, observacoes, imagens: [], dataCadastro: new Date().toLocaleDateString('pt-BR') };
-  
-  // Salvar foto do cartão de vacina se houver
-  salvarCartaoVacinaBase64(pet).then(() => {
-    pets.push(pet);
-    atualizarTabelaPets(); 
-    preencherPetsEmGaleria(); 
-    limparFormularioPet(); 
-    alert('Pet cadastrado com sucesso!'); 
+  try {
+    const petData = {
+      clienteId: parseInt(clienteId),
+      nome,
+      especie,
+      raca,
+      tamanho,
+      peso: peso ? parseFloat(peso) : null,
+      idade,
+      temperamento,
+      castrado,
+      medicamentos,
+      cartaoVacinaNumero: cartao,
+      observacoes
+    };
+    
+    const novoPet = await salvarPetAPI(petData);
+    await carregarPets(); // Recarrega a lista
+    limparFormularioPet();
+    alert('Pet cadastrado com sucesso!');
     saveState();
-  });
+  } catch (error) {
+    alert('Erro ao cadastrar pet. Tente novamente.');
+  }
 }
 
 function editarPet(id){
@@ -622,7 +762,7 @@ function verificarConflitosCreche(petId, data, crecheIdExcluir = null) {
   return conflitos;
 }
 
-function adicionarHospedagem(){
+async function adicionarHospedagem(){
   const petId = document.getElementById('hospedagemPet').value;
   const checkin = document.getElementById('hospedagemCheckin').value;
   const checkout = document.getElementById('hospedagemCheckout').value;
@@ -645,17 +785,33 @@ function adicionarHospedagem(){
   if(document.getElementById('servicoConsultaVet').checked) servicos.push('Consulta Veterinária');
   if(document.getElementById('servicoTransporte').checked) servicos.push('Transporte');
   const planoNome = calc.planoInfo ? calc.planoInfo.nome : 'Avulso';
-  const h = { id: nextHospedagemId++, petId: parseInt(petId), petNome: pet.nome, clienteNome: cliente.nome,
-    checkin, checkout, dias: calc.dias, servicos: servicos.join(', '),
-    subtotal: calc.subtotal, descontoPercent: calc.descontoPercent, total: calc.total, plano: planoNome,
-    status:'Ativo', dataCriacao: new Date().toLocaleDateString('pt-BR') };
-  hospedagens.push(h);
-  atualizarTabelaHospedagem(); limparFormularioHospedagem();
   
-  // Enviar confirmação automática
-  enviarMensagemCheckin(cliente, pet, checkin, 'Hospedagem');
-  
-  alert(`Hospedagem confirmada! Total: R$ ${h.total.toFixed(2).replace('.',',')}`); saveState();
+  try {
+    const hospedagemData = {
+      petId: parseInt(petId),
+      checkin,
+      checkout,
+      dias: calc.dias,
+      servicos: servicos.join(', '),
+      subtotal: calc.subtotal,
+      descontoPercent: calc.descontoPercent,
+      total: calc.total,
+      plano: planoNome,
+      status: 'Ativo'
+    };
+    
+    const novaHospedagem = await salvarHospedagemAPI(hospedagemData);
+    await carregarHospedagens(); // Recarrega a lista
+    limparFormularioHospedagem();
+    
+    // Enviar confirmação automática
+    enviarMensagemCheckin(cliente, pet, checkin, 'Hospedagem');
+    
+    alert(`Hospedagem confirmada! Total: R$ ${novaHospedagem.total.toFixed(2).replace('.',',')}`);
+    saveState();
+  } catch (error) {
+    alert('Erro ao confirmar hospedagem. Tente novamente.');
+  }
 }
 
 function limparFormularioHospedagem(){
@@ -745,7 +901,7 @@ function calcularPrecoCreche(){
 
 function validarPrereqCreche(){ return ['prereqVacinaC','prereqPulgaC','prereqCaminhaC','prereqComidaC'].every(id=>document.getElementById(id).checked); }
 
-function adicionarCreche(){
+async function adicionarCreche(){
   const petId = document.getElementById('crechePet').value;
   const data = document.getElementById('crecheData').value;
   const periodo = document.getElementById('crechePeriodo').value;
@@ -775,29 +931,34 @@ function adicionarCreche(){
 
   const planoNome = calc.planoInfo ? calc.planoInfo.nome : 'Avulso';
 
-  const c = {
-    id: nextCrecheId++,
-    petId: parseInt(petId),
-    petNome: pet.nome,
-    clienteNome: cliente.nome,
-    data, periodo, plano: planoNome, entrada, saida,
-    dias: calc.multiplicador,
-    atividades: atividades.join(', '),
-    subtotal: calc.subtotal,
-    descontoPercent: calc.descontoPercent,
-    total: calc.total,
-    status: 'Agendado',
-    dataCriacao: new Date().toLocaleDateString('pt-BR')
-  };
-  creches.push(c);
-  atualizarTabelaCreche();
-  limparFormularioCreche();
-  
-  // Enviar confirmação automática
-  enviarMensagemCheckin(cliente, pet, data, 'Creche');
-  
-  alert(`Creche agendada! Total: R$ ${c.total.toFixed(2).replace('.',',')}`);
-  saveState();
+  try {
+    const crecheData = {
+      petId: parseInt(petId),
+      data,
+      periodo,
+      plano: planoNome,
+      entrada,
+      saida,
+      dias: calc.multiplicador,
+      atividades: atividades.join(', '),
+      subtotal: calc.subtotal,
+      descontoPercent: calc.descontoPercent,
+      total: calc.total,
+      status: 'Agendado'
+    };
+    
+    const novaCreche = await salvarCrecheAPI(crecheData);
+    await carregarCreches(); // Recarrega a lista
+    limparFormularioCreche();
+    
+    // Enviar confirmação automática
+    enviarMensagemCheckin(cliente, pet, data, 'Creche');
+    
+    alert(`Creche agendada! Total: R$ ${novaCreche.total.toFixed(2).replace('.',',')}`);
+    saveState();
+  } catch (error) {
+    alert('Erro ao agendar creche. Tente novamente.');
+  }
 }
 
 function limparFormularioCreche(){
@@ -2123,4 +2284,37 @@ function enviarLembrete(cliente, pet, servico, data) {
   registrarMensagem(cliente.id, cliente.nome, 'Lembrete', mensagem, 'Enviada');
   console.log(`🔔 Lembrete enviado para ${cliente.telefone}: ${mensagem}`);
 }
+
+// ===== Inicialização da Aplicação =====
+async function inicializarAplicacao() {
+  console.log('🚀 Carregando dados da API...');
+  
+  try {
+    await Promise.all([
+      carregarClientes(),
+      carregarPets(),
+      carregarHospedagens(),
+      carregarCreches(),
+      carregarConfiguracoes()
+    ]);
+    
+    console.log('✅ Dados carregados com sucesso!');
+    
+    // Atualizar interface após carregar dados
+    atualizarResumo();
+    
+  } catch (error) {
+    console.error('❌ Erro ao carregar dados:', error);
+    // Fallback para localStorage se API falhar
+    loadState();
+  }
+}
+
+// Executar quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+  inicializarAplicacao();
+  
+  // Configurar lembretes automáticos (verificar a cada hora)
+  setInterval(verificarLembretes, 60 * 60 * 1000);
+});
 
