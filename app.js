@@ -860,14 +860,27 @@ async function adicionarCliente(){
     return; 
   }
   
+  // Verificar se email já existe (se preenchido)
+  if(email && clientes.some(c => c.email === email)) {
+    alert('❌ Este email já está cadastrado para outro cliente!');
+    return;
+  }
+  
+  // Verificar se CPF já existe (se preenchido)
+  if(cpf && clientes.some(c => c.cpf === cpf)) {
+    alert('❌ Este CPF já está cadastrado para outro cliente!');
+    return;
+  }
+  
   try {
     const clienteData = { 
-      nome: nome || '', 
-      email: email || '', 
-      telefone: telefone || '', 
-      cpf: cpf || '', 
-      endereco: endereco || '', 
-      emergencia: emergencia || '' 
+      nome: nome, 
+      telefone: telefone,
+      // Campos opcionais: enviar null se estiverem vazios para evitar conflitos de unique constraint
+      email: email || null, 
+      cpf: cpf || null, 
+      endereco: endereco || null, 
+      emergencia: emergencia || null 
     };
     
     console.log('Enviando dados do cliente:', clienteData);
