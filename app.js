@@ -1018,17 +1018,17 @@ async function adicionarPet(){
   try {
     const petData = {
       clienteId: parseInt(clienteId),
-      nome: nome || '',
-      especie: especie || '',
-      raca: raca || '',
-      tamanho: tamanho || '',
+      nome: nome,
+      especie: especie,
+      raca: raca,
+      tamanho: tamanho,
       peso: peso ? parseFloat(peso) : null,
-      idade: idade || '',
-      temperamento: temperamento || '',
+      idade: idade && idade.trim() !== '' ? idade : null,
+      temperamento: temperamento,
       castrado: castrado || 'Sim',
-      medicamentos: medicamentos || '',
-      cartaoVacinaNumero: cartao || '',
-      observacoes: observacoes || ''
+      medicamentos: medicamentos && medicamentos.trim() !== '' ? medicamentos : null,
+      cartaoVacinaNumero: cartao,
+      observacoes: observacoes && observacoes.trim() !== '' ? observacoes : null
     };
     
     console.log('Enviando dados do pet:', petData);
