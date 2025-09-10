@@ -386,7 +386,27 @@ function atualizarTabelaClientes(){
   });
 }
 
-function excluirCliente(id){ if(!confirm('Excluir este cliente?')) return; clientes = clientes.filter(c=>c.id!==id); atualizarTabelaClientes(); atualizarSelectClientes(); saveState(); }
+async function excluirCliente(id){ 
+  if(!confirm('Excluir este cliente?')) return; 
+  
+  try {
+    // Excluir da API
+    const response = await fetch(`${API_BASE_URL}/clientes/${id}`, {
+      method: 'DELETE'
+    });
+    
+    if (response.ok) {
+      // Recarregar lista da API
+      await carregarClientes();
+      alert('Cliente excluído com sucesso!');
+    } else {
+      throw new Error('Erro ao excluir cliente');
+    }
+  } catch (error) {
+    console.error('Erro ao excluir cliente:', error);
+    alert('Erro ao excluir cliente: ' + error.message);
+  }
+}
 
 function atualizarSelectClientes(){
   const select = document.getElementById('petCliente'); if(select){
