@@ -302,13 +302,16 @@ async function adicionarCliente(){
   
   try {
     const clienteData = { nome, email, telefone, cpf, endereco, emergencia };
+    console.log('Enviando dados para API:', clienteData);
     const novoCliente = await salvarClienteAPI(clienteData);
+    console.log('Cliente salvo com sucesso:', novoCliente);
     await carregarClientes(); // Recarrega a lista
     limparFormularioCliente(); 
-    alert('Cliente cadastrado com sucesso!'); 
+    alert('Cliente cadastrado com sucesso!');
     saveState();
   } catch (error) {
-    alert('Erro ao cadastrar cliente. Tente novamente.');
+    console.error('Erro detalhado:', error);
+    alert('Erro ao cadastrar cliente: ' + error.message);
   }
 }
 
