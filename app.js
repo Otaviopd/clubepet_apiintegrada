@@ -1021,10 +1021,10 @@ async function adicionarPet(){
       nome: nome,
       especie: especie,
       raca: raca,
-      tamanho: tamanho,
+      tamanho: tamanho.toUpperCase().replace('É', 'E'), // PEQUENO, MEDIO, GRANDE, GIGANTE
       peso: peso ? parseFloat(peso) : null,
       idade: idade && idade.trim() !== '' ? idade : null,
-      temperamento: temperamento,
+      temperamento: temperamento.toUpperCase().replace('Ã', 'A'), // DOCIL, BRINCALHAO, etc.
       castrado: castrado || 'Sim',
       medicamentos: medicamentos && medicamentos.trim() !== '' ? medicamentos : null,
       cartaoVacinaNumero: cartao,
