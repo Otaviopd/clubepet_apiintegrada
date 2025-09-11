@@ -1,6 +1,56 @@
 // ===== Configuração da API =====
 const API_BASE_URL = 'https://clube-pet-api-1.onrender.com';
 
+// Função para testar conectividade da API
+async function testarConectividadeAPI() {
+  try {
+    console.log('🔍 Testando conectividade da API...');
+    const response = await fetch(`${API_BASE_URL}/health`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (response.ok) {
+      console.log('✅ API está online e funcionando');
+      return true;
+    } else {
+      console.log(`⚠️ API respondeu com status: ${response.status}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Erro de conectividade com a API:', error);
+    return false;
+  }
+}
+
+// Função para sincronizar dados locais com a API
+async function sincronizarDadosComAPI() {
+  console.log('🔄 Iniciando sincronização com a API...');
+  
+  try {
+    // Verificar conectividade primeiro
+    const apiOnline = await testarConectividadeAPI();
+    if (!apiOnline) {
+      console.log('⚠️ API offline - usando dados locais');
+      return false;
+    }
+    
+    // Carregar dados da API
+    await Promise.all([
+      carregarClientes(),
+      carregarPets(),
+      carregarHospedagens(),
+      carregarCreches()
+    ]);
+    
+    console.log('✅ Sincronização concluída com sucesso');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro na sincronização:', error);
+    return false;
+  }
+}
+
 // ===== Estado e preços =====
 let clientes = [];
 let pets = [];
@@ -63,19 +113,20 @@ async function carregarTodosDados() {
   try {
     console.log('🔄 Carregando todos os dados da API...');
     
+    // Verificar se API está online primeiro
+    const apiOnline = await testarConectividadeAPI();
+    if (!apiOnline) {
+      console.log('⚠️ API offline - carregando dados do localStorage');
+      loadStateFromLocalStorage();
+      return false;
+    }
+    
     // Carregar dados em paralelo - apenas endpoints que existem
     await Promise.all([
       carregarClientes(),
       carregarPets(),
       carregarHospedagens(),
       carregarCreches()
-      // Removidos endpoints que retornam 404:
-      // carregarMensagens(),
-      // carregarAvaliacoes(), 
-      // carregarInadimplencias(),
-      // carregarConfiguracoes(),
-      // carregarConfiguracoesComunicacao(),
-      // carregarPlanosCustomizados()
     ]);
     
     console.log('✅ Todos os dados carregados da API');
@@ -90,10 +141,12 @@ async function carregarTodosDados() {
     atualizarSelectPets('crechePet');
     atualizarSelectPets('galeriaPetSelect');
     
+    return true;
   } catch (error) {
     console.error('❌ Erro ao carregar dados da API:', error);
     // Fallback para localStorage se API falhar
     loadStateFromLocalStorage();
+    return false;
   }
 }
 
@@ -3019,10 +3072,23 @@ function checkout(id) {
 }
 
 // ===== Inicialização =====
-document.addEventListener('DOMContentLoaded', ()=>{
-  loadState();
+document.addEventListener('DOMContentLoaded', async ()=>{
+  console.log('🚀 Iniciando aplicação...');
+  
+  // Tentar carregar dados da API primeiro
+  const apiSucesso = await carregarTodosDados();
+  
+  if (!apiSucesso) {
+    console.log('⚠️ Usando dados locais como fallback');
+    loadState();
+  }
+  
   preencherConfiguracoes();
-  atualizarTabelaClientes(); atualizarTabelaPets(); atualizarTabelaHospedagem(); atualizarTabelaCreche(); atualizarResumo();
+  atualizarTabelaClientes(); 
+  atualizarTabelaPets(); 
+  atualizarTabelaHospedagem(); 
+  atualizarTabelaCreche(); 
+  atualizarResumo();
 
   // Recalcular preços automaticamente
   ;['hospedagemPet','hospedagemCheckin','hospedagemCheckout','hospedagemPlano','servicoBanho','servicoConsultaVet','servicoTransporte']
@@ -3037,8 +3103,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Verificar lembretes diários
   verificarLembretes();
   
-  // Carregar dados da API ao iniciar
-  carregarClientes();
+  // Configurar sincronização automática a cada 5 minutos
+  setInterval(async () => {
+    console.log('🔄 Sincronização automática...');
+    await sincronizarDadosComAPI();
+  }, 5 * 60 * 1000); // 5 minutos
+  
+  console.log('✅ Aplicação iniciada com sucesso');
 });
 
 // ===== Sistema de Lembretes =====
