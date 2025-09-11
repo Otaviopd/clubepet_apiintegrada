@@ -375,15 +375,37 @@ async function atualizarPetAPI(id, petData) {
 
 async function excluirPetAPI(id) {
   try {
+    console.log(`🗑️ Tentando excluir pet ID: ${id} na URL: ${API_BASE_URL}/pets/${id}`);
+    
     const response = await fetch(`${API_BASE_URL}/pets/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
+    
+    console.log(`📡 Resposta da API - Status: ${response.status}`);
+    
     if (response.ok) {
+      console.log('✅ Pet excluído com sucesso na API');
       return true;
     }
-    throw new Error('Erro ao excluir pet');
+    
+    // Log detalhado do erro
+    let errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData = await response.text();
+      if (errorData) {
+        console.error('❌ Detalhes do erro da API:', errorData);
+        errorMessage = errorData;
+      }
+    } catch (e) {
+      console.error('❌ Não foi possível ler detalhes do erro');
+    }
+    
+    throw new Error(errorMessage);
   } catch (error) {
-    console.error('Erro ao excluir pet:', error);
+    console.error('❌ Erro ao excluir pet:', error);
     throw error;
   }
 }
@@ -1184,11 +1206,44 @@ function atualizarTabelaPets(){
 
 async function excluirPet(id){ 
   if(!confirm('Excluir este pet?')) return; 
+  
+  // Verificar se o pet existe localmente
+  const pet = pets.find(p => p.id == id);
+  if (!pet) {
+    alert('Pet não encontrado!');
+    return;
+  }
+  
+  console.log(`🔍 Tentando excluir pet: ID=${id}, Nome=${pet.nome}`);
+  
   try {
-    await excluirPetAPI(id);
-    await carregarPets();
+    // Primeiro verificar se o pet existe na API
+    const checkResponse = await fetch(`${API_BASE_URL}/pets/${id}`);
+    console.log(`🔍 Verificação na API - Status: ${checkResponse.status}`);
+    
+    if (checkResponse.status === 404) {
+      console.log('⚠️ Pet não existe na API, removendo apenas localmente');
+      pets = pets.filter(p => p.id != id);
+      atualizarTabelaPets();
+      atualizarSelectPets('hospedagemPet');
+      atualizarSelectPets('crechePet');
+      preencherPetsEmGaleria();
+      saveState();
+      alert('Pet removido (não estava sincronizado com a API).');
+      return;
+    }
+    
+    if (checkResponse.ok) {
+      // Pet existe na API, tentar excluir
+      await excluirPetAPI(id);
+      await carregarPets();
+      alert('Pet excluído com sucesso!');
+    } else {
+      throw new Error(`Erro ao verificar pet na API: ${checkResponse.status}`);
+    }
   } catch (error) {
-    alert('Erro ao excluir pet. Tente novamente.');
+    console.error('❌ Erro ao excluir pet:', error);
+    alert(`Erro ao excluir pet: ${error.message}`);
   }
 }
 
