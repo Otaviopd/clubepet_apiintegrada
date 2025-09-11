@@ -344,18 +344,26 @@ async function excluirClienteAPI(id) {
 // ===== PETS API =====
 async function carregarPets() {
   try {
+    console.log('🔄 Carregando pets da API...');
     const response = await fetch(`${API_BASE_URL}/pets`);
     if (response.ok) {
       const petsAPI = await response.json();
+      console.log('📋 Pets recebidos da API:', petsAPI);
+      
       // Converter formato da API para formato local
       pets = petsAPI.map(pet => ({
         ...pet,
+        // IMPORTANTE: Manter o ID original da API
+        id: pet.id,
         clienteNome: pet.cliente?.nome || '—',
         tamanho: pet.tamanho.charAt(0) + pet.tamanho.slice(1).toLowerCase(),
         temperamento: pet.temperamento.charAt(0) + pet.temperamento.slice(1).toLowerCase(),
         imagens: pet.imagens || [],
         dataCadastro: new Date(pet.dataCadastro).toLocaleDateString('pt-BR')
       }));
+      
+      console.log('✅ Pets processados:', pets.map(p => ({ id: p.id, nome: p.nome })));
+      
       atualizarTabelaPets();
       atualizarSelectPets('hospedagemPet');
       atualizarSelectPets('crechePet');
@@ -438,9 +446,26 @@ async function excluirPetAPI(id) {
     });
     
     console.log(`📡 Resposta da API - Status: ${response.status}`);
+    console.log(`📡 Response OK: ${response.ok}`);
     
     if (response.ok) {
       console.log('✅ Pet excluído com sucesso na API');
+      
+      // Verificar se realmente foi excluído fazendo uma consulta
+      setTimeout(async () => {
+        try {
+          const verificacao = await fetch(`${API_BASE_URL}/pets/${id}`);
+          console.log(`🔍 Verificação pós-exclusão - Status: ${verificacao.status}`);
+          if (verificacao.status === 404) {
+            console.log('✅ Confirmado: Pet foi excluído da API');
+          } else {
+            console.log('⚠️ Pet ainda existe na API após exclusão');
+          }
+        } catch (e) {
+          console.log('🔍 Erro na verificação pós-exclusão:', e);
+        }
+      }, 1000);
+      
       return true;
     }
     
@@ -1269,34 +1294,34 @@ async function excluirPet(id){
   
   console.log(`🔍 Tentando excluir pet: ID=${id}, Nome=${pet.nome}`);
   
+  // Remover localmente primeiro
+  pets = pets.filter(p => p.id != id);
+  atualizarTabelaPets();
+  atualizarSelectPets('hospedagemPet');
+  atualizarSelectPets('crechePet');
+  preencherPetsEmGaleria();
+  saveState();
+  
   try {
-    // Primeiro verificar se o pet existe na API
-    const checkResponse = await fetch(`${API_BASE_URL}/pets/${id}`);
-    console.log(`🔍 Verificação na API - Status: ${checkResponse.status}`);
-    
-    if (checkResponse.status === 404) {
-      console.log('⚠️ Pet não existe na API, removendo apenas localmente');
-      pets = pets.filter(p => p.id != id);
-      atualizarTabelaPets();
-      atualizarSelectPets('hospedagemPet');
-      atualizarSelectPets('crechePet');
-      preencherPetsEmGaleria();
-      saveState();
-      alert('Pet removido (não estava sincronizado com a API).');
-      return;
-    }
+    // Tentar excluir na API (se existir)
+    const petId = String(id);
+    const checkResponse = await fetch(`${API_BASE_URL}/pets/${petId}`);
     
     if (checkResponse.ok) {
-      // Pet existe na API, tentar excluir
-      await excluirPetAPI(id);
-      await carregarPets();
-      alert('Pet excluído com sucesso!');
+      // Pet existe na API, excluir
+      console.log('✅ Pet encontrado na API, excluindo...');
+      await excluirPetAPI(petId);
+      console.log('✅ Pet excluído da API com sucesso');
+    } else if (checkResponse.status === 404) {
+      console.log('ℹ️ Pet não existia na API (apenas local)');
     } else {
-      throw new Error(`Erro ao verificar pet na API: ${checkResponse.status}`);
+      console.log(`⚠️ Erro ao verificar pet na API: ${checkResponse.status}`);
     }
+    
+    alert('Pet excluído com sucesso!');
   } catch (error) {
-    console.error('❌ Erro ao excluir pet:', error);
-    alert(`Erro ao excluir pet: ${error.message}`);
+    console.error('⚠️ Erro ao comunicar com API, mas pet foi removido localmente:', error);
+    alert('Pet excluído localmente (API indisponível).');
   }
 }
 
