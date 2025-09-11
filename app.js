@@ -2505,7 +2505,10 @@ function adicionarPlanoCustom(){
 function removerPlanoCustom(id){
   if(!confirm('Remover este plano customizado?')) return;
   precos.planosCustom = precos.planosCustom.filter(p=>String(p.id)!==String(id));
-  saveState(); renderTabelaPlanosCustom(); popularPlanosEmHospedagem(); popularPlanosEmCreche();
+  saveState();
+  renderTabelaPlanosCustom();
+  popularPlanosEmHospedagem();
+  popularPlanosEmCreche();
   alert('Plano removido!');
 }
 
