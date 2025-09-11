@@ -59,6 +59,13 @@ let creches = [];
 let mensagens = []; // Histórico de comunicação
 let avaliacoes = []; // Avaliações de satisfação
 let inadimplencias = []; // Controle de inadimplência
+let petsExcluidos = []; // Lista de IDs de pets excluídos
+let configuracoes = {
+  precosDiaria: { P: 25, M: 30, G: 35 },
+  precosCreche: { P: 20, M: 25, G: 30 },
+  desconto10Dias: 0.1,
+  desconto20Dias: 0.2
+};
 let nextClienteId = 1, nextPetId = 1, nextHospedagemId = 1, nextCrecheId = 1, nextMensagemId = 1, nextAvaliacaoId = 1, nextInadimplenciaId = 1;
 
 let precos = {
@@ -99,25 +106,40 @@ let configComunicacao = {
 
 // ===== Persistência local =====
 const LS_KEY='clubepet-v2';
-function saveState(){
-  try{ 
-    localStorage.setItem(LS_KEY, JSON.stringify({
-      clientes,pets,hospedagens,creches,mensagens,avaliacoes,inadimplencias,
-      precos,configComunicacao,
-      nextClienteId,nextPetId,nextHospedagemId,nextCrecheId,nextMensagemId,nextAvaliacaoId,nextInadimplenciaId
-    })); 
-  }catch(e){ console.error(e); }
+function saveState() {
+  const data = {
+    clientes,
+    pets,
+    hospedagens,
+    creches,
+    mensagens,
+    avaliacoes,
+    inadimplencias,
+    petsExcluidos,
+    configuracoes,
+    nextClienteId,
+    nextPetId,
+    nextHospedagemId,
+    nextCrecheId,
+    nextMensagemId,
+    nextAvaliacaoId,
+    nextInadimplenciaId
+  };
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
 }
+
 // Função para carregar dados da API (substitui localStorage)
 async function carregarTodosDados() {
   try {
     console.log('🔄 Carregando todos os dados da API...');
     
+    // PRIMEIRO carregar dados locais para preservar exclusões
+    loadStateFromLocalStorage();
+    
     // Verificar se API está online primeiro
     const apiOnline = await testarConectividadeAPI();
     if (!apiOnline) {
-      console.log('⚠️ API offline - carregando dados do localStorage');
-      loadStateFromLocalStorage();
+      console.log('⚠️ API offline - usando apenas dados locais');
       return false;
     }
     
@@ -157,6 +179,7 @@ function loadStateFromLocalStorage(){
     const s = JSON.parse(raw);
     clientes=s.clientes||[]; pets=s.pets||[]; hospedagens=s.hospedagens||[]; creches=s.creches||[];
     mensagens=s.mensagens||[]; avaliacoes=s.avaliacoes||[]; inadimplencias=s.inadimplencias||[];
+    petsExcluidos=s.petsExcluidos||[];
     precos= s.precos ? {...precos, ...s.precos} : precos;
     configComunicacao = s.configComunicacao ? {...configComunicacao, ...s.configComunicacao} : configComunicacao;
     nextClienteId=s.nextClienteId||1; nextPetId=s.nextPetId||1; nextHospedagemId=s.nextHospedagemId||1; nextCrecheId=s.nextCrecheId||1;
@@ -345,15 +368,16 @@ async function excluirClienteAPI(id) {
 async function carregarPets() {
   try {
     console.log('🔄 Carregando pets da API...');
+    console.log('🗑️ Lista atual de pets excluídos:', petsExcluidos);
+    
     const response = await fetch(`${API_BASE_URL}/pets`);
     if (response.ok) {
       const petsAPI = await response.json();
       console.log('📋 Pets recebidos da API:', petsAPI);
       
       // Converter formato da API para formato local
-      pets = petsAPI.map(pet => ({
+      const petsConvertidos = petsAPI.map(pet => ({
         ...pet,
-        // IMPORTANTE: Manter o ID original da API
         id: pet.id,
         clienteNome: pet.cliente?.nome || '—',
         tamanho: pet.tamanho.charAt(0) + pet.tamanho.slice(1).toLowerCase(),
@@ -362,7 +386,18 @@ async function carregarPets() {
         dataCadastro: new Date(pet.dataCadastro).toLocaleDateString('pt-BR')
       }));
       
-      console.log('✅ Pets processados:', pets.map(p => ({ id: p.id, nome: p.nome })));
+      // Manter pets locais que não existem na API (novos pets)
+      const petsLocaisNovos = pets.filter(petLocal => 
+        !petsAPI.find(petAPI => petAPI.id === petLocal.id)
+      );
+      
+      // Filtrar pets da API que estão na lista de excluídos
+      const petsAPIFiltrados = petsConvertidos.filter(pet => !petsExcluidos.includes(pet.id));
+      
+      // Combinar pets da API (filtrados) com pets locais novos
+      pets = [...petsAPIFiltrados, ...petsLocaisNovos];
+      
+      console.log('✅ Pets finais (API filtrados + locais novos):', pets.map(p => ({ id: p.id, nome: p.nome })));
       
       atualizarTabelaPets();
       atualizarSelectPets('hospedagemPet');
@@ -1294,7 +1329,13 @@ async function excluirPet(id){
   
   console.log(`🔍 Tentando excluir pet: ID=${id}, Nome=${pet.nome}`);
   
-  // Remover localmente primeiro
+  // Adicionar à lista de excluídos PRIMEIRO
+  if (!petsExcluidos.includes(id)) {
+    petsExcluidos.push(id);
+    console.log('🗑️ Pet adicionado à lista de excluídos:', id);
+  }
+  
+  // Remover localmente
   pets = pets.filter(p => p.id != id);
   atualizarTabelaPets();
   atualizarSelectPets('hospedagemPet');
